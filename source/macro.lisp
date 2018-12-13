@@ -9,7 +9,8 @@
   `(progn
      (defparameter ,script-name
        (ps:ps ,@script-body))
-     (defun ,script-name (&optional (callback nil) (buffer (active-buffer *interface*)))
+     (define-command ,script-name (&optional (callback nil) (buffer (active-buffer *interface*)))
+       "Parenscript"
        (buffer-evaluate-javascript *interface* buffer ,script-name callback))))
 
 ;; allow inlining of a parenscript function that can accept arguments,
