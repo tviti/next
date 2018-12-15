@@ -36,20 +36,20 @@
 (define-command history-backwards ()
   "Move up to parent node to iterate backwards in history tree."
   (let ((parent (node-parent (active-history-node
-                              (mode (active-buffer *interface*))))))
+                              (mode (buffer-active *interface*))))))
     (when parent
       (set-url (node-data parent) t))))
 
 (define-command history-forwards ()
   "Move forwards in history selecting the first child."
   (let ((children (node-children (active-history-node
-                                  (mode (active-buffer *interface*))))))
+                                  (mode (buffer-active *interface*))))))
     (unless (null children)
       (set-url (node-data (nth 0 children)) t))))
 
 (defun history-forwards-completion-fn ()
   ;; provide completion candidates to the history-forwards-query function
-  (let* ((mode (mode (active-buffer *interface*)))
+  (let* ((mode (mode (buffer-active *interface*)))
          (children (node-children (active-history-node mode))))
     (lambda (input)
       (if children

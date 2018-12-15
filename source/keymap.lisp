@@ -35,7 +35,7 @@
   (if (consume-key-sequence-p sender) 1 0))
 
 (defun consume-key-sequence-p (sender)
-  (let* ((active-buffer (active-buffer (gethash sender (windows *interface*))))
+  (let* ((active-buffer (buffer-active (gethash sender (windows *interface*))))
          (key-maps (list *global-map* (keymap (mode active-buffer)))))
     (flet ((is-in-maps? (key-maps)
              (dolist (map key-maps)
@@ -48,7 +48,7 @@
 (defun consume-key-sequence (sender)
   ;; Iterate through all keymaps
   ;; If key recognized, execute function
-  (let* ((active-buffer (active-buffer (gethash sender (windows *interface*))))
+  (let* ((active-buffer (buffer-active (gethash sender (windows *interface*))))
          (key-maps (list *global-map* (keymap (mode active-buffer)))))
     (dolist (map key-maps)
       (let ((bound (gethash *key-chord-stack* map)))

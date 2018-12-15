@@ -112,7 +112,7 @@ currently active buffer."
            (selected-link (cadr (assoc selected-anchor link-hints :test #'equalp))))
       (when selected-link
         (buffer-evaluate-javascript *interface*
-                                   (active-buffer *interface*)
+                                   (buffer-active *interface*)
                                    (buffer-set-url selected-link))))))
 
 (define-command go-anchor-new-buffer ()

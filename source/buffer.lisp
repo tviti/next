@@ -41,7 +41,7 @@
   "Delete the currently active buffer, and make the next buffer the
 visible buffer. If no other buffers exist, set the url of the current
 buffer to the start page."
-  (buffer-delete *interface* (active-buffer *interface*)))
+  (buffer-delete *interface* (buffer-active *interface*)))
 
 (define-parenstatic buffer-get-url
     (ps:chain window location href))
@@ -63,7 +63,7 @@ buffer to the start page."
 
 (defun set-url (input-url &optional disable-history)
   (let ((url (parse-url input-url)))
-    (set-url-buffer url (active-buffer *interface*) disable-history)))
+    (set-url-buffer url (buffer-active *interface*) disable-history)))
 
 (define-command set-url-current-buffer ()
   "Set the url for the current buffer, completing with history."
@@ -93,7 +93,7 @@ buffer"
   "Switch to the previous buffer in the list of buffers, if the
 first item in the list, jump to the last item."
   (let* ((buffers (alexandria:hash-table-values (buffers *interface*)))
-         (active-buffer (active-buffer *interface*))
+         (active-buffer (buffer-active *interface*))
          (active-buffer-index (get-active-buffer-index active-buffer buffers)))
     (if (equalp 0 active-buffer-index)
 	(set-active-buffer *interface* (nth (- (length buffers) 1) buffers))
@@ -103,7 +103,7 @@ first item in the list, jump to the last item."
   "Switch to the next buffer in the list of buffers, if the last
 item in the list, jump to the first item."
   (let* ((buffers (alexandria:hash-table-values (buffers *interface*)))
-         (active-buffer (active-buffer *interface*))
+         (active-buffer (buffer-active *interface*))
          (active-buffer-index (get-active-buffer-index active-buffer buffers)))
     (if (< (+ active-buffer-index 1) (length buffers))
         (set-active-buffer *interface* (nth (+ active-buffer-index 1) buffers))
