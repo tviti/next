@@ -22,8 +22,19 @@
 
 (defun serialize-key-chord (key-chord)
   (append (list (key-chord-key-code key-chord)
-                (key-chord-key-string key-chord))
+           (key-chord-key-string key-chord))
           (key-chord-modifiers key-chord)))
+
+(defun stringify (serialized-key-stack)
+  ;; Print ((nil - C) (nil x C)) as "C-x C--"
+  (format nil "~{~a~^ ~}"
+          (mapcar (lambda (serialized-key-chord)
+                    (format nil "~{~a~^-~}"
+                            (reverse
+                             ;; We work over rest to ignore keycode, since it's always
+                             ;; nil in this implementation.
+                             (rest serialized-key-chord))))
+                  (reverse serialized-key-stack))))
 
 (defun look-up-key-chord-stack (key-chords map)
   (let ((key (mapcar #'serialize-key-chord key-chords)))

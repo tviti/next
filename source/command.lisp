@@ -54,13 +54,33 @@
       (with-slots (implementation) command
         (funcall implementation)))))
 
-(defun complete-command (input)
-  (fuzzy-match input (alexandria:hash-table-keys *available-commands*)))
+(defun complete-command (command-list input)
+  (fuzzy-match input command-list))
 
 (define-command execute-extended-command ()
   "Execute a command by name"
-  (with-result (command (read-from-minibuffer
-                         *minibuffer*
-                         :input-prompt "Execute command:"
-                         :completion-function 'complete-command))
-    (funcall (impl (gethash command *available-commands*)))))
+  (let ((mode (mode (active-buffer *interface*)))
+        (command-key-map (make-hash-table :test #'equal))
+        command-list)
+    (maphash (lambda (key command)
+               (setf (gethash (string-downcase (princ-to-string command)) command-key-map)
+                     (stringify key)))
+             (keymap mode))
+    (map 'list (lambda (command)
+                 (push
+                  (format nil "~a~a"
+                          (string-downcase command)
+                          (let ((key (gethash (string-downcase command) command-key-map)))
+                            (if key
+                                (format nil " (~a)" key)
+                                "")))
+                  command-list))
+         (alexandria:hash-table-keys *available-commands*))
+    (with-result (command (read-from-minibuffer
+                           *minibuffer*
+                           :input-prompt "Execute command:"
+                           :completion-function (lambda (input)
+                                                  (complete-command command-list input))))
+      (funcall (impl (gethash
+                      (first (cl-strings:split command))
+                      *available-commands*))))))
