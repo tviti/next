@@ -69,6 +69,7 @@
   (if setup-function
       (funcall setup-function)
       (setup-default minibuffer))
+  (update-completions minibuffer)
   (update-display minibuffer)
   (show minibuffer)
   (setf (active-buffer (window-active *interface*)) *minibuffer*))
@@ -153,6 +154,7 @@
                            :position (input-buffer-cursor minibuffer)))
   (incf (input-buffer-cursor minibuffer) (length characters))
   (setf (completion-cursor minibuffer) 0)
+  (update-completions minibuffer)
   (update-display minibuffer))
 
 (defmethod delete-forwards ((minibuffer minibuffer))
@@ -164,6 +166,7 @@
                          (subseq input-buffer
                                  (+ 1 input-buffer-cursor)
                                  (length input-buffer))))))
+  (update-completions minibuffer)
   (update-display minibuffer))
 
 (defmethod delete-backwards ((minibuffer minibuffer))
@@ -174,6 +177,7 @@
                          (subseq input-buffer 0 (- input-buffer-cursor 1))
                          (subseq input-buffer input-buffer-cursor (length input-buffer))))
       (decf input-buffer-cursor)))
+  (update-completions minibuffer)
   (update-display minibuffer))
 
 (defmethod cursor-forwards ((minibuffer minibuffer))
@@ -243,6 +247,7 @@
                          (subseq input-buffer 0 current-cursor-position)
                          (subseq input-buffer new-cursor-position (length input-buffer))))
       (setf input-buffer-cursor (- input-buffer-cursor transpose-distance))))
+  (update-completions minibuffer)
   (update-display minibuffer))
 
 (defmethod delete-backwards-word ((minibuffer minibuffer))
@@ -253,11 +258,13 @@
             (concatenate 'string
                          (subseq input-buffer 0 new-cursor-position)
                          (subseq input-buffer current-cursor-position (length input-buffer))))))
+  (update-completions minibuffer)
   (update-display minibuffer))
 
 (defmethod kill-line ((minibuffer minibuffer))
     (with-slots (input-buffer input-buffer-cursor) minibuffer
       (setf input-buffer (subseq input-buffer 0 input-buffer-cursor)))
+  (update-completions minibuffer)
   (update-display minibuffer))
 
 (defun generate-input-html (input-buffer cursor-index)
@@ -276,13 +283,14 @@
                                      :id (when (equal i cursor-index) "selected")
                                      (object-string completion)))))))
 
-(defmethod update-display ((minibuffer minibuffer))
-  (with-slots (input-buffer input-buffer-cursor completion-function
-               completions completion-cursor)
-      minibuffer
+(defmethod update-completions ((minibuffer minibuffer))
+  (with-slots (input-buffer completion-function completions) minibuffer
     (if completion-function
         (setf completions (funcall completion-function input-buffer))
-        (setf completions nil))
+        (setf completions nil))))
+
+(defmethod update-display ((minibuffer minibuffer))
+  (with-slots (input-buffer input-buffer-cursor completions completion-cursor) minibuffer
     (let ((input-text (generate-input-html input-buffer input-buffer-cursor))
           (completion-html (generate-completion-html completions completion-cursor)))
       (minibuffer-evaluate-javascript
