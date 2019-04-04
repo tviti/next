@@ -263,6 +263,62 @@ static GVariant *server_minibuffer_evaluate(SoupXMLRPCParams *params) {
 	return callback_variant;
 }
 
+static GVariant *server_buffer_set_option(SoupXMLRPCParams *params) {
+	GVariant *unwrapped_params = server_unwrap_params(params);
+	if (!unwrapped_params) {
+		return g_variant_new_boolean(FALSE);
+	}
+	const char *buffer_id = NULL;
+	const char *key = NULL;
+	const char *mode = NULL;
+	const char *proxy_uri = NULL;
+	char **ignore_hosts = NULL;
+	// ignore_hosts is passed as a list of string variants.
+	{
+		GVariantIter *iter;
+		g_variant_get(unwrapped_params, "(&s&s&s&sav)", &buffer_id, &key, &mode, &proxy_uri, &iter);
+
+		GVariant *str_variant;
+		gchar *value = NULL;
+		GList *value_list = NULL;
+		while (g_variant_iter_loop(iter, "v", &str_variant)) {
+			g_variant_get(str_variant, "s", &value);
+			value_list = g_list_append(value_list, value);
+		}
+		g_variant_iter_free(iter);
+
+		ignore_hosts = g_new(char *, 1+g_list_length(value_list));
+		GList *old_value_list = value_list;
+		int i = 0;
+		while (value_list != NULL) {
+			ignore_hosts[i] = value_list->data;
+			i++;
+			value_list = value_list->next;
+		}
+		ignore_hosts[g_list_length(old_value_list)] = NULL;
+		g_list_free(old_value_list);
+	}
+
+	{
+		gchar *pretty_ignore_hosts = g_strjoinv(",", ignore_hosts);
+		g_message("Method parameter(s): buffer id %s, set %s=%s, URI=%s, ignore_hosts=%s", buffer_id, key, mode, proxy_uri, pretty_ignore_hosts);
+		g_free(pretty_ignore_hosts);
+	}
+
+	int mode_enum = WEBKIT_NETWORK_PROXY_MODE_DEFAULT;
+	if (g_strcmp0(mode, "custom") == 0) {
+		mode_enum = WEBKIT_NETWORK_PROXY_MODE_CUSTOM;
+	} else if (g_strcmp0(mode, "none") == 0) {
+		mode_enum = WEBKIT_NETWORK_PROXY_MODE_NO_PROXY;
+	}
+	Buffer *buffer = g_hash_table_lookup(state.buffers, buffer_id);
+	// TODO: How do we do the option dispatch?
+	if (g_strcmp0(key, "proxy") == 0) {
+		buffer_set_proxy(buffer, mode_enum, proxy_uri, (const char *const *)ignore_hosts);
+	}
+	return g_variant_new_boolean(TRUE);
+}
+
 static void server_handler(SoupServer *_server, SoupMessage *msg,
 	const char *path, GHashTable *_query,
 	SoupClientContext *_context, gpointer _data) {
@@ -355,6 +411,7 @@ void start_server() {
 	g_hash_table_insert(state.server_callbacks, "buffer.delete", &server_buffer_delete);
 	g_hash_table_insert(state.server_callbacks, "buffer.evaluate.javascript", &server_buffer_evaluate);
 	g_hash_table_insert(state.server_callbacks, "minibuffer.evaluate.javascript", &server_minibuffer_evaluate);
+	g_hash_table_insert(state.server_callbacks, "buffer.set.option", &server_buffer_set_option);
 }
 
 void stop_server() {
