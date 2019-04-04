@@ -212,6 +212,10 @@ startup after the remote-interface was set up."
     (setf (gethash callback-id (minibuffer-callbacks window)) callback)
     callback-id))
 
+(defmethod buffer-set-proxy ((interface remote-interface) (buffer buffer) proxy-uri ignore-hosts)
+  (%xml-rpc-send interface "buffer.set.option" (id buffer) "proxy"
+                 "custom" proxy-uri ignore-hosts))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Expose Lisp Core XML RPC Endpoints ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
