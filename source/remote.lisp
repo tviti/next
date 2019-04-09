@@ -18,6 +18,7 @@
    (mode :accessor mode :initarg :mode)
    (view :accessor view :initarg :view)
    (modes :accessor modes :initarg :modes)
+   (resource-query-functions :accessor resource-query-functions :initarg :resource-query-functions)
    (callbacks :accessor callbacks
               :initform (make-hash-table :test #'equal))))
 
@@ -268,6 +269,12 @@ startup after the remote-interface was set up."
       (let ((buffer (make-buffer)))
         (set-url-buffer url buffer)))))
 
+(defun |navigated| (buffer-id url)
+  "Return whether URL should be loaded or not."
+  (let ((buffer (gethash buffer-id (buffers *interface*))))
+    (loop for function in (resource-query-functions buffer)
+          always (funcall function url buffer-id))))
+
 (import '|buffer.did.commit.navigation| :s-xml-rpc-exports)
 (import '|buffer.did.finish.navigation| :s-xml-rpc-exports)
 (import '|push.key.event| :s-xml-rpc-exports)
@@ -276,6 +283,7 @@ startup after the remote-interface was set up."
 (import '|minibuffer.javascript.call.back| :s-xml-rpc-exports)
 (import '|window.will.close| :s-xml-rpc-exports)
 (import '|make.buffers| :s-xml-rpc-exports)
+(import '|navigated| :s-xml-rpc-exports)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convenience methods and functions for Users of the API ;;
