@@ -29,11 +29,11 @@
   (let ((key (mapcar #'serialize-key-chord key-chords)))
     (gethash key map)))
 
-(defun push-key-event (key-code key-string modifiers sender)
+(defun |push.key.event| (key-code key-string modifiers sender)
   ;; Adds a new chord to key-sequence
   ;; For example, it may add C-M-s or C-x
   ;; to a stack which will be consumed by
-  ;; consume-key-sequence
+  ;; |consume.key.sequence|
   (declare (ignore key-code)) ;; current implementation ignores keycode
   (let ((key-chord (make-key-chord
                     :key-code nil
@@ -64,7 +64,7 @@
              t)
             (t (setf *key-chord-stack* ()))))))
 
-(defun consume-key-sequence (sender)
+(defun |consume.key.sequence| (sender)
   ;; Iterate through all keymaps
   ;; If key recognized, execute function
   (let* ((active-window (gethash sender (windows *interface*)))
@@ -77,13 +77,13 @@
     (dolist (map key-maps)
       (let ((bound (gethash serialized-key-stack map)))
         (cond ((equalp "prefix" bound)
-               (return-from consume-key-sequence t))
+               (return-from |consume.key.sequence| t))
               (bound
                (progn
                  (log:debug "Key sequence bound")
                  (funcall bound)
                  (setf *key-chord-stack* ())
-                 (return-from consume-key-sequence t)))
+                 (return-from |consume.key.sequence| t)))
               ((equalp map *minibuffer-mode-map*)
                (progn
                  (log:debug "Insert ~s in minibuffer" (key-chord-key-string
@@ -91,7 +91,7 @@
                  (self-insert *minibuffer* (key-chord-key-string
                                             (first *key-chord-stack*)))
                  (setf *key-chord-stack* ())
-                 (return-from consume-key-sequence t))))))
+                 (return-from |consume.key.sequence| t))))))
     ;; not found in any key-maps
     (setf *key-chord-stack* ())))
 

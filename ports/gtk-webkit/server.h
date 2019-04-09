@@ -384,6 +384,21 @@ static GVariant *server_get_proxy(SoupXMLRPCParams *params) {
 	return g_variant_builder_end(&builder);
 }
 
+static GVariant *server_list_methods(SoupXMLRPCParams *_params) {
+	GHashTableIter iter;
+	gpointer key;
+
+	GVariantBuilder builder;
+	g_variant_builder_init(&builder, G_VARIANT_TYPE_ARRAY);
+
+	g_hash_table_iter_init(&iter, state.server_callbacks);
+	while (g_hash_table_iter_next(&iter, &key, NULL)) {
+		g_variant_builder_add_parsed(&builder, "%s", key);
+	}
+
+	return g_variant_builder_end(&builder);
+}
+
 static void server_handler(SoupServer *_server, SoupMessage *msg,
 	const char *path, GHashTable *_query,
 	SoupClientContext *_context, gpointer _data) {
@@ -465,6 +480,8 @@ void start_server() {
 			&g_free, (GDestroyNotify)&buffer_delete);
 
 	// Register callbacks.
+	g_hash_table_insert(state.server_callbacks, "listMethods", &server_list_methods);
+
 	g_hash_table_insert(state.server_callbacks, "window.make", &server_window_make);
 	g_hash_table_insert(state.server_callbacks, "window.set.title", &server_window_set_title);
 	g_hash_table_insert(state.server_callbacks, "window.delete", &server_window_delete);

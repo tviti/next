@@ -88,6 +88,10 @@ startup after the remote-interface was set up."
      (apply #'s-xml-rpc:encode-xml-rpc-call method args)
      :host (host interface) :port (port interface) :url url)))
 
+(defmethod list-methods ((interface remote-interface))
+  "Return the unsorted list of XML-RPC methods supported by the platform port."
+  (%xml-rpc-send interface "listMethods"))
+
 (defmethod get-unique-window-identifier ((interface remote-interface))
   (incf (total-window-count interface))
   (format nil "~a" (total-window-count interface)))
@@ -226,33 +230,33 @@ startup after the remote-interface was set up."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Expose Lisp Core XML RPC Endpoints ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun buffer-javascript-call-back (buffer-id javascript-response callback-id)
+(defun |buffer.javascript.call.back| (buffer-id javascript-response callback-id)
   (let* ((buffer (gethash buffer-id (buffers *interface*)))
          (callback (gethash callback-id (callbacks buffer))))
     (when callback
       (funcall callback javascript-response))))
 
-(defun minibuffer-javascript-call-back (window-id javascript-response callback-id)
+(defun |minibuffer.javascript.call.back| (window-id javascript-response callback-id)
   (let* ((window (gethash window-id (windows *interface*)))
          (callback (gethash callback-id (minibuffer-callbacks window))))
     (when callback
       (funcall callback javascript-response))))
 
-(defun buffer-did-commit-navigation (buffer-id url)
+(defun |buffer.did.commit.navigation| (buffer-id url)
   (let ((buffer (gethash buffer-id (buffers *interface*))))
     (did-commit-navigation buffer url)))
 
-(defun buffer-did-finish-navigation (buffer-id url)
+(defun |buffer.did.finish.navigation| (buffer-id url)
   (let ((buffer (gethash buffer-id (buffers *interface*))))
     (did-finish-navigation buffer url)))
 
-(defun window-will-close (window-id)
+(defun |window.will.close| (window-id)
   (let ((windows (windows *interface*)))
     (log:debug "Closing window ID ~a (new total: ~a)" window-id
                (1- (length (alexandria:hash-table-values windows))))
     (remhash window-id windows)))
 
-(defun make-buffers (urls)
+(defun |make.buffers| (urls)
   "Create new buffers from URLs."
   ;; The new active buffer should be the first created buffer.
   (when urls
@@ -264,14 +268,14 @@ startup after the remote-interface was set up."
       (let ((buffer (make-buffer)))
         (set-url-buffer url buffer)))))
 
-(import 'buffer-did-commit-navigation :s-xml-rpc-exports)
-(import 'buffer-did-finish-navigation :s-xml-rpc-exports)
-(import 'push-key-event :s-xml-rpc-exports)
-(import 'consume-key-sequence :s-xml-rpc-exports)
-(import 'buffer-javascript-call-back :s-xml-rpc-exports)
-(import 'minibuffer-javascript-call-back :s-xml-rpc-exports)
-(import 'window-will-close :s-xml-rpc-exports)
-(import 'make-buffers :s-xml-rpc-exports)
+(import '|buffer.did.commit.navigation| :s-xml-rpc-exports)
+(import '|buffer.did.finish.navigation| :s-xml-rpc-exports)
+(import '|push.key.event| :s-xml-rpc-exports)
+(import '|consume.key.sequence| :s-xml-rpc-exports)
+(import '|buffer.javascript.call.back| :s-xml-rpc-exports)
+(import '|minibuffer.javascript.call.back| :s-xml-rpc-exports)
+(import '|window.will.close| :s-xml-rpc-exports)
+(import '|make.buffers| :s-xml-rpc-exports)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convenience methods and functions for Users of the API ;;
