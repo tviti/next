@@ -86,13 +86,64 @@ static void buffer_web_view_load_changed(WebKitWebView *web_view,
 	// 'msg' and 'uri' are freed automatically.
 }
 
+void buffer_navigated_callback(SoupSession *session, SoupMessage *msg, gpointer data) {
+	GError *error = NULL;
+	g_debug("Buffer navigation XML-RPC response: %s", msg->response_body->data);
+
+	GVariant *load = soup_xmlrpc_parse_response(msg->response_body->data,
+			msg->response_body->length, "i", &error);
+
+	if (error) {
+		g_warning("%s: '%s'", error->message,
+			strndup(msg->response_body->data, msg->response_body->length));
+		g_error_free(error);
+		return;
+	}
+
+	WebKitPolicyDecision *decision = data;
+	if (load) {
+		g_debug("Load URI");
+		webkit_policy_decision_use(decision);
+	} else {
+		g_debug("Ignore URI");
+		webkit_policy_decision_ignore(decision);
+	}
+
+	return;
+}
+
 gboolean buffer_web_view_decide_policy(WebKitWebView *web_view,
-	WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, gpointer buffer) {
+	WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, gpointer bufferp) {
 	switch (type) {
-	case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+	case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION: {
+		WebKitNavigationAction *action;
+		action = webkit_navigation_policy_decision_get_navigation_action(WEBKIT_NAVIGATION_POLICY_DECISION(decision));
+		WebKitURIRequest *request = webkit_navigation_action_get_request(action);
+		g_debug("Policy: Navigation: %s", webkit_uri_request_get_uri(request));
+
 		// TODO: Force-load the URL in a new buffer on a specific keybinding.
 		// TODO: Handle special resources, like file:///...
-		return FALSE;
+		g_object_ref(decision);
+
+		const char *method_name = "navigated";
+
+		Buffer *buffer = bufferp;
+		GVariant *arg = g_variant_new("(ss)", buffer->identifier, webkit_uri_request_get_uri(request));
+		g_message("XML-RPC message: %s %s", method_name, g_variant_print(arg, TRUE));
+
+		GError *error = NULL;
+		SoupMessage *msg = soup_xmlrpc_message_new(state.core_socket,
+				method_name, arg, &error);
+
+		if (error) {
+			g_warning("Malformed XML-RPC message: %s", error->message);
+			g_error_free(error);
+			// TODO: Return TRUE or FALSE?
+			return FALSE;
+		}
+		soup_session_queue_message(xmlrpc_env, msg, (SoupSessionCallback)buffer_navigated_callback, decision);
+		return TRUE;
+	}
 	case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION: {
 		WebKitNavigationAction *action;
 		action = webkit_navigation_policy_decision_get_navigation_action(WEBKIT_NAVIGATION_POLICY_DECISION(decision));
