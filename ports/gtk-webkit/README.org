@@ -16,3 +16,7 @@ This also works when starting ~next~ directly:
 or simply with
 
 : next --verbose
+
+To fire up the GTK+ inspector, run it with
+
+: GTK_DEBUG=interactive next
