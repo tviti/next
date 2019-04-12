@@ -271,7 +271,7 @@ startup after the remote-interface was set up."
       (let ((buffer (make-buffer)))
         (set-url-buffer url buffer)))))
 
-(defun |request-resource| (buffer-id url event-type is-new-window is-known-type input)
+(defun |request.resource| (buffer-id url event-type is-new-window is-known-type input)
   "Return whether URL should be loaded or not."
   (declare (ignore event-type input))
   (let ((buffer (gethash buffer-id (buffers *interface*))))
