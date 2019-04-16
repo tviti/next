@@ -26,6 +26,7 @@
   key-code
   key-string
   modifiers
+  position
   low-level-data)
 
 (defmethod did-commit-navigation ((buffer buffer) url)
@@ -229,13 +230,16 @@ events."
              (list
               (key-chord-key-code event)
               (key-chord-modifiers event)
-              (key-chord-low-level-data event))
+              (key-chord-low-level-data event)
+              (key-chord-position event))
              (id window))
   (%xml-rpc-send interface "generate.input.event"
                  (id window)
                  (key-chord-key-code event)
                  (or (key-chord-modifiers event) (list ""))
-                 (key-chord-low-level-data event)))
+                 (key-chord-low-level-data event)
+                 (float (or (first (key-chord-position event)) -1.0))
+                 (float (or (second (key-chord-position event)) -1.0))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Expose Lisp Core XML RPC Endpoints ;;
