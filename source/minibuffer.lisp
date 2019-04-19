@@ -137,13 +137,13 @@
                      (:div :id "completions" ""))))))
 
 (defmethod show ((minibuffer minibuffer))
-  (setf (minibuffer-active (window-active *interface*)) t)
+  (setf (minibuffer-active-p (window-active *interface*)) t)
   (window-set-minibuffer-height *interface*
                                 (window-active *interface*)
                                 *minibuffer-open-height*))
 
 (defmethod hide ((minibuffer minibuffer))
-  (setf (minibuffer-active (window-active *interface*)) nil)
+  (setf (minibuffer-active-p (window-active *interface*)) nil)
   (window-set-minibuffer-height *interface*
                                 (window-active *interface*)
                                 *minibuffer-closed-height*))

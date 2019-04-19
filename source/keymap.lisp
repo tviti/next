@@ -47,7 +47,7 @@
 (defun consume-key-sequence-p (sender)
   (let* ((active-window (gethash sender (windows *interface*)))
          (active-buffer (active-buffer active-window))
-         (local-map (if (minibuffer-active active-window)
+         (local-map (if (minibuffer-active-p active-window)
                         *minibuffer-mode-map*
                         (keymap (mode active-buffer))))
          ;; TODO: Shouldn't we give higher priority to the buffer keymap?
@@ -56,7 +56,7 @@
              (dolist (map key-maps)
                (when (look-up-key-chord-stack *key-chord-stack* map)
                  (return-from is-in-maps? t)))))
-      (cond ((minibuffer-active active-window)
+      (cond ((minibuffer-active-p active-window)
              (log:debug "Minibuffer active")
              t)
             ((is-in-maps? key-maps)
@@ -69,7 +69,7 @@
   ;; If key recognized, execute function
   (let* ((active-window (gethash sender (windows *interface*)))
          (active-buffer (active-buffer active-window))
-         (local-map (if (minibuffer-active active-window)
+         (local-map (if (minibuffer-active-p active-window)
                         *minibuffer-mode-map*
                         (keymap (mode active-buffer))))
          (key-maps (list *global-map* local-map))
