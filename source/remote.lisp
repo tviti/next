@@ -8,7 +8,7 @@
 (defclass window ()
   ((id :accessor id :initarg :id)
    (buffer-active :accessor buffer-active :initform nil)
-   (minibuffer-active-p :accessor minibuffer-active-p :initform nil)
+   (minibuffer-showing :accessor minibuffer-showing :initform nil)
    (minibuffer-callbacks :accessor minibuffer-callbacks
                          :initform (make-hash-table :test #'equal))))
 
