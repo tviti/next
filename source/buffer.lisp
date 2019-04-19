@@ -65,7 +65,7 @@ buffer to the start page."
   (let ((url (parse-url input-url)))
     (set-url-buffer url (buffer-active *interface*) disable-history)))
 
-(define-command set-url-current-buffer ()
+(define-command set-url-active-buffer ()
   "Set the URL for the current buffer, completing with history."
   (with-result (url (read-from-minibuffer
                      *minibuffer*
@@ -74,7 +74,7 @@ buffer to the start page."
                      :empty-complete-immediate t))
     (set-url url)))
 
-(define-command reload-current-buffer ()
+(define-command reload-active-buffer ()
   "Reload current buffer."
   (with-result (url (buffer-get-url))
     (set-url url 'disable-history)))
