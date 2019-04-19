@@ -41,7 +41,7 @@
                        *minibuffer*
                        :input-prompt "Search for:"))
     (buffer-evaluate-javascript *interface*
-                                (active-buffer *interface*)
+                                (buffer-active *interface*)
                                 (paren-add-search-boxes input))))
 
 (define-parenstatic remove-search-hints

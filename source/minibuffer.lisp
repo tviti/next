@@ -65,7 +65,7 @@
   (setf (setup-function minibuffer) setup-function)
   (setf (cleanup-function minibuffer) cleanup-function)
   (setf (empty-complete-immediate minibuffer) empty-complete-immediate)
-  (setf (callback-buffer minibuffer) (active-buffer *interface*))
+  (setf (callback-buffer minibuffer) (buffer-active *interface*))
   (if setup-function
       (funcall setup-function)
       (setup-default minibuffer))

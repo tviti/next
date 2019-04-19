@@ -7,7 +7,7 @@
 
 (defclass window ()
   ((id :accessor id :initarg :id)
-   (active-buffer :accessor active-buffer :initform nil)
+   (buffer-active :accessor buffer-active :initform nil)
    (minibuffer-active-p :accessor minibuffer-active-p :initform nil)
    (minibuffer-callbacks :accessor minibuffer-callbacks
                          :initform (make-hash-table :test #'equal))))
@@ -138,7 +138,7 @@ startup after the remote-interface was set up."
                                       (window window)
                                       (buffer buffer))
   (%xml-rpc-send interface "window.set.active.buffer" (id window) (id buffer))
-  (setf (active-buffer window) buffer))
+  (setf (buffer-active window) buffer))
 
 (defmethod window-set-active-buffer ((interface remote-interface)
                                      (window window)
@@ -146,11 +146,11 @@ startup after the remote-interface was set up."
   ;; TODO: Replace this swapping business with a simple swap + a "refresh rendering" RPC call?
   (let ((window-with-same-buffer (find-if
                                   (lambda (other-window) (and (not (eq other-window window))
-                                                              (eql (active-buffer other-window) buffer)))
+                                                              (eql (buffer-active other-window) buffer)))
                                   (alexandria:hash-table-values (windows *interface*)))))
     (if window-with-same-buffer ;; if visible on screen perform swap, otherwise just show
         (let ((temp-buffer (buffer-make *interface*))
-              (buffer-swap (active-buffer window)))
+              (buffer-swap (buffer-active window)))
           (log:debug "Swapping with buffer from existing window.")
           (%window-set-active-buffer interface window-with-same-buffer temp-buffer)
           (%window-set-active-buffer interface window buffer)
@@ -191,7 +191,7 @@ startup after the remote-interface was set up."
 
 (defmethod buffer-delete ((interface remote-interface) (buffer buffer))
   (let ((parent-window (find-if
-                        (lambda (window) (eql (active-buffer window) buffer))
+                        (lambda (window) (eql (buffer-active window) buffer))
                         (alexandria:hash-table-values (windows *interface*))))
         (replacement-buffer (or (%get-inactive-buffer interface)
                                 (%buffer-make interface))))
@@ -286,9 +286,9 @@ events."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convenience methods and functions for Users of the API ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmethod active-buffer ((interface remote-interface))
+(defmethod buffer-active ((interface remote-interface))
   "Get the active buffer for the active window."
-  (active-buffer (window-active interface)))
+  (buffer-active (window-active interface)))
 
 ;; TODO: Prevent setting the minibuffer as the active buffer.
 (defmethod set-active-buffer ((interface remote-interface)
@@ -296,4 +296,4 @@ events."
   "Set the active buffer for the active window."
   (let ((window-active (window-active interface)))
     (window-set-active-buffer interface window-active buffer)
-    (setf (active-buffer window-active) buffer)))
+    (setf (buffer-active window-active) buffer)))

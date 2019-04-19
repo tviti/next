@@ -78,5 +78,5 @@
                      :input-prompt "Open bookmark:"
                      :completion-function 'bookmark-complete))
     (buffer-evaluate-javascript *interface*
-                                (active-buffer *interface*)
+                                (buffer-active *interface*)
                                 (buffer-set-url url))))

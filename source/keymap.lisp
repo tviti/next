@@ -46,7 +46,7 @@
 
 (defun consume-key-sequence-p (sender)
   (let* ((active-window (gethash sender (windows *interface*)))
-         (active-buffer (active-buffer active-window))
+         (active-buffer (buffer-active active-window))
          (local-map (if (minibuffer-active-p active-window)
                         *minibuffer-mode-map*
                         (keymap (mode active-buffer))))
@@ -68,7 +68,7 @@
   ;; Iterate through all keymaps
   ;; If key recognized, execute function
   (let* ((active-window (gethash sender (windows *interface*)))
-         (active-buffer (active-buffer active-window))
+         (active-buffer (buffer-active active-window))
          (local-map (if (minibuffer-active-p active-window)
                         *minibuffer-mode-map*
                         (keymap (mode active-buffer))))

@@ -116,7 +116,7 @@
 currently active buffer."
   (query-anchors "Go to link:" (selected-link)
     (buffer-evaluate-javascript *interface*
-                                (active-buffer *interface*)
+                                (buffer-active *interface*)
                                 (buffer-set-url selected-link))))
 
 (define-command go-anchor-new-buffer ()
