@@ -283,7 +283,9 @@ startup after the remote-interface was set up."
       ((not is-known-type)
        (log:info "Buffer ~a downloads ~a" buffer url)
        0)
-      (t 1))
+      (t
+       (log:info "Forwarding ~a back to platform port" url)
+       1))
     ;; TODO: Move the cond to RESOURCE-QUERY-FUNCTIONS to let the user customize
     ;; the behaviour.
     ;; (if (loop for function in (resource-query-functions buffer)
