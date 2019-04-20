@@ -26,6 +26,26 @@ typedef struct {
 } BufferInfo;
 
 
+void buffer_message_uri_change(const gchar *method_name, const gchar *uri, gpointer data) {
+	g_debug("Load changed: %s", uri);
+
+	Buffer *buffer = data;
+	GError *error = NULL;
+	GVariant *arg = g_variant_new("(ss)", buffer->identifier, uri);
+	g_message("XML-RPC message: %s %s", method_name, g_variant_print(arg, TRUE));
+
+	SoupMessage *msg = soup_xmlrpc_message_new(state.core_socket,
+			method_name, arg, &error);
+
+	if (error) {
+		g_warning("Malformed XML-RPC message: %s", error->message);
+		g_error_free(error);
+		return;
+	}
+	soup_session_queue_message(xmlrpc_env, msg, NULL, NULL);
+	// 'msg' and 'uri' are freed automatically.
+}
+
 static void buffer_web_view_load_changed(WebKitWebView *web_view,
 	WebKitLoadEvent load_event,
 	gpointer data) {
@@ -66,24 +86,12 @@ static void buffer_web_view_load_changed(WebKitWebView *web_view,
 	if (uri == NULL) {
 		return;
 	}
+	buffer_message_uri_change(method_name, uri, data);
+}
 
-	g_debug("Load changed: %s", uri);
-
-	Buffer *buffer = data;
-	GError *error = NULL;
-	GVariant *arg = g_variant_new("(ss)", buffer->identifier, uri);
-	g_message("XML-RPC message: %s %s", method_name, g_variant_print(arg, TRUE));
-
-	SoupMessage *msg = soup_xmlrpc_message_new(state.core_socket,
-			method_name, arg, &error);
-
-	if (error) {
-		g_warning("Malformed XML-RPC message: %s", error->message);
-		g_error_free(error);
-		return;
-	}
-	soup_session_queue_message(xmlrpc_env, msg, NULL, NULL);
-	// 'msg' and 'uri' are freed automatically.
+void buffer_web_view_uri_changed(WebKitWebView *web_view, GParamSpec *_spec, gpointer data) {
+	const char *method_name = "buffer.did.commit.navigation";
+	buffer_message_uri_change(method_name, webkit_web_view_get_uri(web_view), data);
 }
 
 typedef struct  {
@@ -266,6 +274,8 @@ Buffer *buffer_init(const char *cookie_file) {
 
 	g_signal_connect(buffer->web_view, "load-changed",
 		G_CALLBACK(buffer_web_view_load_changed), buffer);
+	g_signal_connect(buffer->web_view, "notify::uri",
+		G_CALLBACK(buffer_web_view_uri_changed), buffer);
 	g_signal_connect(buffer->web_view, "decide-policy",
 		G_CALLBACK(buffer_web_view_decide_policy), buffer);
 	g_signal_connect(buffer->web_view, "web-process-crashed",
