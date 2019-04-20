@@ -259,6 +259,11 @@ events."
   (let ((buffer (gethash buffer-id (buffers *interface*))))
     (did-finish-navigation buffer url)))
 
+(defun |buffer.uri.at.point| (uri)
+  (if (and uri (not (string= uri "")))
+      (echo *minibuffer* uri)
+      (echo-dismiss *minibuffer*)))
+
 (defun window-will-close (window-id)
   (let ((windows (windows *interface*)))
     (log:debug "Closing window ID ~a (new total: ~a)" window-id
@@ -285,6 +290,7 @@ events."
 (import 'minibuffer-javascript-call-back :s-xml-rpc-exports)
 (import 'window-will-close :s-xml-rpc-exports)
 (import 'make-buffers :s-xml-rpc-exports)
+(import '|buffer.uri.at.point| :s-xml-rpc-exports)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convenience methods and functions for Users of the API ;;
