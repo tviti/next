@@ -174,6 +174,34 @@ gboolean buffer_web_view_web_process_crashed(WebKitWebView *web_view, Buffer *bu
 	return FALSE;
 }
 
+void buffer_mouse_target_changed(WebKitWebView *web_view,
+	WebKitHitTestResult *result, guint _modifiers, gpointer _data) {
+	const char *method_name = "buffer.uri.at.point";
+	const gchar *uri = "";
+	GError *error = NULL;
+
+	if (webkit_hit_test_result_context_is_link(result)) {
+		uri = webkit_hit_test_result_get_link_uri(result);
+	} else if (webkit_hit_test_result_context_is_image(result)) {
+		uri = webkit_hit_test_result_get_image_uri(result);
+	}
+
+	GVariant *arg = g_variant_new("(s)", uri);
+	g_message("XML-RPC message: %s %s", method_name, g_variant_print(arg, TRUE));
+
+	SoupMessage *msg = soup_xmlrpc_message_new(state.core_socket,
+			method_name, arg, &error);
+
+	if (error) {
+		g_warning("Malformed XML-RPC message: %s", error->message);
+		g_error_free(error);
+		return;
+	}
+	soup_session_queue_message(xmlrpc_env, msg, NULL, NULL);
+	// 'msg' and 'uri' are freed automatically.
+}
+
+
 Buffer *buffer_init(const char *cookie_file) {
 	Buffer *buffer = calloc(1, sizeof (Buffer));
 	buffer->web_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
@@ -185,6 +213,8 @@ Buffer *buffer_init(const char *cookie_file) {
 		G_CALLBACK(buffer_web_view_decide_policy), buffer);
 	g_signal_connect(buffer->web_view, "web-process-crashed",
 		G_CALLBACK(buffer_web_view_web_process_crashed), buffer);
+	g_signal_connect(buffer->web_view, "mouse-target-changed",
+		G_CALLBACK(buffer_mouse_target_changed), buffer);
 
 	WebKitWebContext *context = webkit_web_view_get_context(buffer->web_view);
 	g_signal_connect(context, "download-started", G_CALLBACK(buffer_web_view_download_started), buffer);
