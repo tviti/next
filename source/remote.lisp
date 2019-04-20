@@ -300,7 +300,7 @@ startup after the remote-interface was set up."
 (import '|minibuffer.javascript.call.back| :s-xml-rpc-exports)
 (import '|window.will.close| :s-xml-rpc-exports)
 (import '|make.buffers| :s-xml-rpc-exports)
-(import '|request-resource| :s-xml-rpc-exports)
+(import '|request.resource| :s-xml-rpc-exports)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Convenience methods and functions for Users of the API ;;

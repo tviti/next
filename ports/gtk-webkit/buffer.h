@@ -194,7 +194,7 @@ gboolean buffer_web_view_decide_policy(WebKitWebView *web_view,
 		modifiers = webkit_navigation_action_get_modifiers(action);
 	}
 
-	const char *method_name = "request-resource";
+	const char *method_name = "request.resource";
 
 	// TODO: Encode mouse + modifiers properly.
 	// TODO: Test if it's a redirect?
