@@ -129,9 +129,11 @@
              }
              else if ([method isEqualToString:@"generate.input.event"]) {
                  NSMutableArray* lowLevelData = [parameters objectAtIndex: 3];
+                 double pointX = [[parameters objectAtIndex:4] doubleValue];
+                 double pointY = [[parameters objectAtIndex:5] doubleValue];
                  dispatch_sync(dispatch_get_main_queue(), ^{
                      [NSApp sendEvent:[NSEvent keyEventWithType:NSEventTypeKeyDown
-                                                       location:CGPointZero
+                                                       location:CGPointMake(pointX, pointY)
                                                   modifierFlags:[[lowLevelData objectAtIndex:0] integerValue]
                                                       timestamp:0
                                                    windowNumber:(NSInteger)[lowLevelData objectAtIndex:1]

@@ -73,8 +73,8 @@
                                   [[NSNumber alloc] initWithInteger:[event windowNumber]],
                                   [event characters],
                                   [event charactersIgnoringModifiers]];
-        [request setMethod:@"PUSH-KEY-EVENT"
-            withParameters:@[ keyCode, characters, modifiers, lowLevelData, activeWindow ]];
+        [request setMethod:@"PUSH-INPUT-EVENT"
+            withParameters:@[keyCode, characters, modifiers, @0, @0, lowLevelData, activeWindow]];
         NSURLSession* session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
         [[session dataTaskWithRequest:[request request]] resume];
     } else {
