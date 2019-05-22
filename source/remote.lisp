@@ -82,20 +82,13 @@ platform ports might support this.")))
   (did-finish-navigation (mode buffer) url))
 
 (defclass remote-interface ()
-  ((auth :accessor interface-auth :initform
-         (ironclad:byte-array-to-hex-string (ironclad:random-data 64)))
-   (core-port :accessor core-port :initform 8081
-              :documentation "The XML-RPC server port of the Lisp core.")
-   (platform-port-socket :accessor platform-port-socket :initform '(:host "localhost" :port 8082)
-                         :documentation "The XML-RPC remote socket of the platform-port.")
-   (port :accessor port :initform (make-instance 'port)
+  ((port :accessor port :initform (make-instance 'port)
          :documentation "The CLOS object responible for handling the platform port.")
    (platform-port-poll-interval :accessor platform-port-poll-interval :initform 0.015
                                 :documentation "The speed at which to poll the
-XML-RPC endpoint of a platform-port to see if it is ready to begin accepting
-XML-RPC commands.")
+RPC endpoint of a platform-port to see if it is ready to begin accepting RPC
+commands.")
    (active-connection :accessor active-connection :initform nil)
-   (url :accessor url :initform "/RPC2")
    (minibuffer :accessor minibuffer :initform (make-instance 'minibuffer)
                :documentation "The minibuffer object.")
    (windows :accessor windows :initform (make-hash-table :test #'equal))
@@ -108,86 +101,47 @@ XML-RPC commands.")
    (key-chord-stack :accessor key-chord-stack :initform '()
                     :documentation "A stack that keeps track of the key chords a user has inputted.")))
 
-(defmethod host ((interface remote-interface))
-  "Retrieve the host of the platform port dynamically.
-It's important that it is dynamic since the platform port can be reconfigured on
-startup after the remote-interface was set up."
-  (getf (platform-port-socket interface) :host))
-
-(defmethod host-port ((interface remote-interface))
-  "Retrieve the port of the platform port dynamically.
-It's important that it is dynamic since the platform port can be reconfigured on
-startup after the remote-interface was set up."
-  (getf (platform-port-socket interface) :port))
-
 (defmethod initialize-instance :after ((interface remote-interface)
                                        &key &allow-other-keys)
-  "Start the XML RPC Server."
+  "Start the RPC server."
   (setf (active-connection interface)
-        ;; TODO: Ideally, s-xml-rpc should send an implementation-independent
-        ;; condition.
         (handler-case
-            (s-xml-rpc:start-xml-rpc-server :port (core-port interface))
-          (#+sbcl sb-bsd-sockets:address-in-use-error
-           #+ccl ccl:socket-error
-           (#+ccl e
-            )
-            (when #+sbcl t
-                  #+ccl (eq (ccl:socket-error-identifier e) :address-in-use)
-                  (let ((url-list (or *free-args*
-                                      (list (get-default 'buffer 'default-new-buffer-url)))))
-                (format *error-output* "Port ~a already in use, requesting to open URL(s) ~a.~%"
-                        (core-port interface) url-list)
-                ;; TODO: Check for errors (S-XML-RPC:XML-RPC-FAULT).
-                (handler-case
-                    (progn
-                      (%xml-rpc-send-core interface "make.buffers" url-list)
-
-                      (uiop:quit))
-                  (error ()
-                    (let ((new-port (find-port:find-port)))
-                      (format *error-output* "Port ~a does not seem to be used by Next, trying ~a instead.~%"
-                              (core-port interface) new-port)
-                      (setf (core-port interface) new-port)
-                      (s-xml-rpc:start-xml-rpc-server :port (core-port interface)))))))))))
-
+            (dbus:with-open-bus (bus (dbus:session-server-addresses))
+              (format t "Bus connection name: ~A~%" (dbus:bus-name bus))
+              ;; TODO: Make sure the following returns.
+              (dbus:publish-objects bus))
+          (end-of-file ()
+            (let ((url-list (or *free-args*
+                                (list (get-default 'buffer 'default-new-buffer-url)))))
+              (format *error-output* "Next already started, requesting to open URL(s) ~a.~%"
+                      url-list)
+              (%xml-rpc-send interface "make.buffers" url-list)
+              (uiop:quit))))))
 
 (defmethod kill-interface ((interface remote-interface))
-  "Kill the XML RPC Server."
+  "Stop the RPC server."
   (when (active-connection interface)
     (log:debug "Stopping server")
-    (ignore-errors
-     (s-xml-rpc:stop-server (active-connection interface)))))
+    ;; TODO: How do we close the connection?
+    ;; (ignore-errors
+    ;;  (dbus:close-connection (bus-connection (bus remote-interface))))
+    ))
 
-(defun %xml-rpc-send (interface method &rest args)
-  (xml-rpc-send interface method t args))
-
-(defun %xml-rpc-send-core (interface method &rest args)
-  (xml-rpc-send interface method nil args))
-
-(defmethod xml-rpc-send ((interface remote-interface) (method string) host-p (args list))
+(defmethod %xml-rpc-send ((interface remote-interface) (method string) (args list))
   ;; TODO: Make %xml-rpc-send asynchronous?
   ;; If the platform port ever hangs, the next %xml-rpc-send will hang the Lisp core too.
   ;; Always ensure we send the auth token as the first argument
-  (push (interface-auth interface) args)
-  (with-slots (url) interface
-    (handler-case
-        (s-xml-rpc:xml-rpc-call
-         (apply #'s-xml-rpc:encode-xml-rpc-call method args)
-         :host (host interface)
-         :port (funcall (if host-p #'host-port #'core-port) interface)
-         :url url)
-      (s-xml-rpc:xml-rpc-fault (c)
-        (log:warn "~a" c)
-        (echo (minibuffer *interface*)
-              (format nil "Platform port failed to respond to '~a': ~a" method c))
-        (error c)))))
+  ;; TODO: Catch connection errors and execution errors.
+  (with-open-bus (bus (session-server-addresses))
+    (with-introspected-object (platform-port bus +platform-port-object+ +platform-port-name+)
+      (platform-port +platform-port-interface+ method args))))
 
-;; TODO: Move to separate packages
-;; next-script
-;; next-rpc
+;; TODO: Move to separate packages:
+;; - next-rpc
+;; - next-script (?)
 (defmethod %%list-methods ((interface remote-interface))
-  "Return the unsorted list of XML-RPC methods supported by the platform port."
+  "Return the unsorted list of RPC methods supported by the platform port."
+  ;; TODO: Find the right way to do this.  Also this is used to poll the platform port.
   (%xml-rpc-send interface "listMethods"))
 
 (defmethod get-unique-window-identifier ((interface remote-interface))
@@ -354,24 +308,19 @@ events."
 (defmethod %%get-proxy ((interface remote-interface) (buffer buffer))
   (%xml-rpc-send interface "get.proxy" (id buffer)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Expose Lisp Core XML RPC Endpoints ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmacro define-endpoint (name (&rest arglist) &body body)
-  "Define a XML-RPC endpoint NAME.
-The primary function of this macro is to automatically add the required
-'authentication' argument to all calls."
-  (alexandria:with-gensyms (auth tmp-fn)
-    (push auth arglist)
-    `(progn
-       (defun ,tmp-fn ,(rest arglist) ,@body)
-       (defun ,name ,arglist
-         (if (equal ,auth (interface-auth *interface*))
-             (,tmp-fn ,@(rest arglist))
-             ;; We failed the auth check, bail out.
-             (warn "Received improperly authenticated request over RPC."))))))
+
+;; Expose Lisp Core RPC endpoints.
 
-(define-endpoint |buffer.javascript.call.back| (buffer-id javascript-response callback-id)
+(dbus:define-dbus-object core-object
+  (:path +core-object+))
+
+;; TODO: Dbus method names can only contain "[A-Z][a-z][0-9]_".  CamelCase is conventional.
+;; TODO: Double-check the parameter types and the result types.
+
+(dbus:define-dbus-method (core-object |buffer.javascript.call.back|)
+    ((buffer-id :string) (javascript-response :string) (callback-id :string))
+    ()
+  (:interface +core-interface+)
   (let ((buffer (gethash buffer-id (buffers *interface*))))
     ;; Buffer might not exist, e.g. if it has been deleted in the mean time.
     (when buffer
@@ -379,27 +328,42 @@ The primary function of this macro is to automatically add the required
         (when callback
           (funcall callback javascript-response))))))
 
-(define-endpoint |minibuffer.javascript.call.back| (window-id javascript-response callback-id)
+(dbus:define-dbus-method (core-object |minibuffer.javascript.call.back|)
+    ((window-id :string) (javascript-response :string) (callback-id :string))
+    ()
+  (:interface +core-interface+)
   (let* ((window (gethash window-id (windows *interface*)))
          (callback (gethash callback-id (minibuffer-callbacks window))))
     (when callback
       (funcall callback javascript-response))))
 
-(define-endpoint |buffer.did.commit.navigation| (buffer-id url)
+(dbus:define-dbus-method (core-object |buffer.did.commit.navigation|)
+    ((buffer-id :string) (url :string))
+    ()
+  (:interface +core-interface+)
   (let ((buffer (gethash buffer-id (buffers *interface*))))
     (did-commit-navigation buffer url)))
 
-(define-endpoint |buffer.did.finish.navigation| (buffer-id url)
+(dbus:define-dbus-method (core-object |buffer.did.finish.navigation|)
+    ((buffer-id :string) (url :string))
+    ()
+  (:interface +core-interface+)
   (let ((buffer (gethash buffer-id (buffers *interface*))))
     (did-finish-navigation buffer url)))
 
-(define-endpoint |window.will.close| (window-id)
+(dbus:define-dbus-method (core-object |window.will.close|)
+    ((window-id :string))
+    ()
+  (:interface +core-interface+)
   (let ((windows (windows *interface*)))
     (log:debug "Closing window ID ~a (new total: ~a)" window-id
                (1- (length (alexandria:hash-table-values windows))))
     (remhash window-id windows)))
 
-(define-endpoint |make.buffers| (urls)
+(dbus:define-dbus-method (core-object |make.buffers|)
+    ((urls :string))
+    ()
+  (:interface +core-interface+)
   (make-buffers urls))
 
 (defun make-buffers (urls)
@@ -414,9 +378,12 @@ The primary function of this macro is to automatically add the required
       (let ((buffer (make-buffer)))
         (set-url-buffer url buffer)))))
 
-(define-endpoint |request.resource| (buffer-id url event-type is-new-window is-known-type
-                                               mouse-button modifiers)
-  "Return whether URL should be loaded or not."
+;; Return whether URL should be loaded or not.
+(dbus:define-dbus-method (core-object |request.resource|)
+    ((buffer-id :string) (url :string) (event-type :string) (is-new-window :boolean)
+     (is-known-type :boolean) (mouse-button :string) (modifiers :string))
+    ()
+  (:interface +core-interface+)
   (declare (ignore event-type))
   (log:debug "Mouse ~a, modifiers ~a" mouse-button modifiers)
   (let ((buffer (gethash buffer-id (buffers *interface*))))
@@ -439,20 +406,9 @@ The primary function of this macro is to automatically add the required
     ;;     0)
     ))
 
-;; All functions in this list should be defined with `define-endpoint' for security reasons.
-(import '|buffer.did.commit.navigation| :s-xml-rpc-exports)
-(import '|buffer.did.finish.navigation| :s-xml-rpc-exports)
-(import '|push.input.event| :s-xml-rpc-exports)
-(import '|consume.key.sequence| :s-xml-rpc-exports)
-(import '|buffer.javascript.call.back| :s-xml-rpc-exports)
-(import '|minibuffer.javascript.call.back| :s-xml-rpc-exports)
-(import '|window.will.close| :s-xml-rpc-exports)
-(import '|make.buffers| :s-xml-rpc-exports)
-(import '|request.resource| :s-xml-rpc-exports)
+
+;; Convenience methods and functions for users of the API.
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Convenience methods and functions for Users of the API ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmethod active-buffer ((interface remote-interface))
   "Get the active buffer for the active window."
   (active-buffer (%%window-active interface)))

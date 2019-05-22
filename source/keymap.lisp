@@ -19,10 +19,14 @@
   (let ((key (mapcar #'serialize-key-chord key-chords)))
     (gethash key map)))
 
-(define-endpoint |push.input.event| (key-code key-string modifiers x y low-level-data sender)
   "Add a new key chord to the interface key-chord-stack.
 For example, it may add C-M-s or C-x to a stack which will be consumed by
 `|consume.key.sequence|'."
+(dbus:define-dbus-method (core-object |push.input.event|)
+  ((key-code :string) (key-string :string) (modifiers :string) (x :double) (y :double)
+   (low-level-data :string) (sender :string))
+  ()
+    (:interface +core-interface+)
   (let ((key-chord (make-key-chord
                     :key-code key-code
                     :key-string key-string
@@ -71,7 +75,7 @@ For example, it may add C-M-s or C-x to a stack which will be consumed by
 ;; event callback in the platform port.  This has been deprecated in favour of
 ;; event generation, but we keep it around in case the new approach happens to
 ;; be not satisfying.
-(define-endpoint |consume.key.sequence| (sender)
+(define... |consume.key.sequence| (sender)
   (consume-key-sequence sender))
 |#
 
