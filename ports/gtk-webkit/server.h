@@ -23,7 +23,7 @@ static GVariant *server_window_make(GVariant *parameters) {
 	window->identifier = strdup(a_key);
 	window->minibuffer->parent_window_identifier = strdup(window->identifier);
 	g_message("Method result(s): window id %s", window->identifier);
-	return g_variant_new_string(window->identifier);
+	return g_variant_new("(s)", window->identifier);
 }
 
 static GVariant *server_window_set_title(GVariant *parameters) {
@@ -37,7 +37,7 @@ static GVariant *server_window_set_title(GVariant *parameters) {
 		return g_variant_new_boolean(FALSE);
 	}
 	window_set_title(window, title);
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_window_delete(GVariant *parameters) {
@@ -46,7 +46,7 @@ static GVariant *server_window_delete(GVariant *parameters) {
 	g_message("Method parameter(s): %s", a_key);
 
 	g_hash_table_remove(state.windows, a_key);
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_window_active(GVariant *_parameters) {
@@ -67,7 +67,7 @@ static GVariant *server_window_active(GVariant *_parameters) {
 	}
 
 	g_message("Method parameter(s): %s", id);
-	return g_variant_new_string(id);
+	return g_variant_new("(s)", id);
 }
 
 static GVariant *server_window_exists(GVariant *parameters) {
@@ -77,9 +77,9 @@ static GVariant *server_window_exists(GVariant *parameters) {
 
 	Window *window = g_hash_table_lookup(state.windows, a_key);
 	if (!window) {
-		return g_variant_new_boolean(FALSE);
+		return g_variant_new("(b)", FALSE);
 	}
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_window_set_active_buffer(GVariant *parameters) {
@@ -92,14 +92,14 @@ static GVariant *server_window_set_active_buffer(GVariant *parameters) {
 	Buffer *buffer = g_hash_table_lookup(state.buffers, buffer_id);
 	if (window == NULL) {
 		g_warning("Non-existent window %s", window_id);
-		return g_variant_new_boolean(FALSE);
+		return g_variant_new("(b)", FALSE);
 	}
 	if (buffer == NULL) {
 		g_warning("Non-existent buffer %s", buffer_id);
-		return g_variant_new_boolean(FALSE);
+		return g_variant_new("(b)", FALSE);
 	}
 	window_set_active_buffer(window, buffer);
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_buffer_make(GVariant *parameters) {
@@ -131,7 +131,7 @@ static GVariant *server_buffer_make(GVariant *parameters) {
 	g_hash_table_insert(state.buffers, strdup(a_key), buffer);
 	buffer->identifier = strdup(a_key);
 	g_message("Method result(s): buffer id %s", buffer->identifier);
-	return g_variant_new_string(buffer->identifier);
+	return g_variant_new("(s)", buffer->identifier);
 }
 
 static GVariant *server_buffer_delete(GVariant *parameters) {
@@ -140,7 +140,7 @@ static GVariant *server_buffer_delete(GVariant *parameters) {
 	g_message("Method parameter(s): %s", a_key);
 
 	g_hash_table_remove(state.buffers, a_key);
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_buffer_load(GVariant *parameters) {
@@ -152,11 +152,11 @@ static GVariant *server_buffer_load(GVariant *parameters) {
 	Buffer *buffer = g_hash_table_lookup(state.buffers, buffer_id);
 	if (!buffer) {
 		g_warning("Non-existent buffer %s", buffer_id);
-		return g_variant_new_boolean(FALSE);
+		return g_variant_new("(b)", FALSE);
 	}
 
 	buffer_load(buffer, uri);
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_buffer_evaluate(GVariant *parameters) {
@@ -169,11 +169,11 @@ static GVariant *server_buffer_evaluate(GVariant *parameters) {
 	Buffer *buffer = g_hash_table_lookup(state.buffers, buffer_id);
 	if (!buffer) {
 		g_warning("Non-existent buffer %s", buffer_id);
-		return g_variant_new_string("");
+		return g_variant_new("(s)", "");
 	}
 	char *callback_id = buffer_evaluate(buffer, javascript);
 	g_message("Method result(s): callback id %s", callback_id);
-	GVariant *callback_variant = g_variant_new_string(callback_id);
+	GVariant *callback_variant = g_variant_new("(s)", callback_id);
 	g_free(callback_id);
 	return callback_variant;
 }
@@ -189,11 +189,11 @@ static GVariant *server_window_set_minibuffer_height(GVariant *parameters) {
 	Window *window = g_hash_table_lookup(state.windows, window_id);
 	if (!window) {
 		g_warning("Non-existent window %s", window_id);
-		return g_variant_new_int64(0);
+		return g_variant_new("(x)", 0);
 	}
 	gint64 preferred_height = window_set_minibuffer_height(window, minibuffer_height);
 	g_message("Method result(s): minibuffer preferred height %li", preferred_height);
-	return g_variant_new_int64(preferred_height);
+	return g_variant_new("(x)", preferred_height);
 }
 
 static GVariant *server_minibuffer_evaluate(GVariant *parameters) {
@@ -207,7 +207,7 @@ static GVariant *server_minibuffer_evaluate(GVariant *parameters) {
 	Minibuffer *minibuffer = window->minibuffer;
 	char *callback_id = minibuffer_evaluate(minibuffer, javascript);
 	g_message("Method result(s): callback id %s", callback_id);
-	GVariant *callback_variant = g_variant_new_string(callback_id);
+	GVariant *callback_variant = g_variant_new("(s)", callback_id);
 	g_free(callback_id);
 	return callback_variant;
 }
@@ -224,7 +224,7 @@ static GVariant *server_generate_input_event(GVariant *parameters) {
 	{
 		if (!g_variant_check_format_string(parameters, "(siavidd)", FALSE)) {
 			g_warning("Malformed input event: %s", g_variant_get_type_string(parameters));
-			return g_variant_new_boolean(FALSE);
+			return g_variant_new("(b)", FALSE);
 		}
 		GVariantIter *iter;
 		g_variant_get(parameters, "(siavidd)", &window_id, &hardware_keycode,
@@ -252,7 +252,7 @@ static GVariant *server_generate_input_event(GVariant *parameters) {
 	Window *window = g_hash_table_lookup(state.windows, window_id);
 	if (!window) {
 		g_warning("Non-existent window %s", window_id);
-		return g_variant_new_boolean(FALSE);
+		return g_variant_new("(b)", FALSE);
 	}
 
 	GdkEvent event;
@@ -312,7 +312,7 @@ static GVariant *server_generate_input_event(GVariant *parameters) {
 	return g_variant_new_boolean(TRUE);
 }
 
-// TODO: Test introspection.
+// TODO: Implement introspection for D-Bus.
 /*
 static GVariant *server_list_methods(SoupXMLRPCParams *_params) {
         GHashTableIter iter;
@@ -409,7 +409,7 @@ static GVariant *server_set_proxy(GVariant *parameters) {
 	// More elegant way to do this?
 	/* g_free(ignore_hosts); */
 	g_list_free(buffer_ids);
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 static GVariant *server_get_proxy(GVariant *parameters) {
