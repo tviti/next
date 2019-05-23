@@ -13,6 +13,7 @@ Use of this file is governed by the license that can be found in LICENSE.
 typedef GVariant * (*ServerCallback) (GVariant *);
 
 static GVariant *server_window_make(GVariant *parameters) {
+	// TODO: Rename a_key to key.
 	const char *a_key = NULL;
 	g_variant_get(parameters, "(&s)", &a_key);
 	g_message("Method parameter(s): %s", a_key);
@@ -474,38 +475,11 @@ static const GDBusInterfaceVTable interface_vtable = {
 /* Introspection data for the service we are exporting */
 static const gchar introspection_xml[] =
 	"<node>"
-	"  <interface name='org.gtk.GDBus.TestInterface'>"
-	"    <annotation name='org.gtk.GDBus.Annotation' value='OnInterface'/>"
-	"    <annotation name='org.gtk.GDBus.Annotation' value='AlsoOnInterface'/>"
-	"    <method name='HelloWorld'>"
-	"      <annotation name='org.gtk.GDBus.Annotation' value='OnMethod'/>"
-	"      <arg type='s' name='greeting' direction='in'/>"
-	"      <arg type='s' name='response' direction='out'/>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='WindowMake'>"
+	"      <arg type='s' name='id' direction='in'/>"
+	"      <arg type='s' name='newId' direction='out'/>"
 	"    </method>"
-	"    <method name='EmitSignal'>"
-	"      <arg type='d' name='speed_in_mph' direction='in'>"
-	"        <annotation name='org.gtk.GDBus.Annotation' value='OnArg'/>"
-	"      </arg>"
-	"    </method>"
-	"    <method name='GimmeStdout'/>"
-	"    <signal name='VelocityChanged'>"
-	"      <annotation name='org.gtk.GDBus.Annotation' value='Onsignal'/>"
-	"      <arg type='d' name='speed_in_mph'/>"
-	"      <arg type='s' name='speed_as_string'>"
-	"        <annotation name='org.gtk.GDBus.Annotation' value='OnArg_NonFirst'/>"
-	"      </arg>"
-	"    </signal>"
-	"    <property type='s' name='FluxCapicitorName' access='read'>"
-	"      <annotation name='org.gtk.GDBus.Annotation' value='OnProperty'>"
-	"        <annotation name='org.gtk.GDBus.Annotation' value='OnAnnotation_YesThisIsCrazy'/>"
-	"      </annotation>"
-	"    </property>"
-	"    <property type='s' name='Title' access='readwrite'/>"
-	"    <property type='s' name='ReadingAlwaysThrowsError' access='read'/>"
-	"    <property type='s' name='WritingAlwaysThrowsError' access='readwrite'/>"
-	"    <property type='s' name='OnlyWritable' access='write'/>"
-	"    <property type='s' name='Foo' access='read'/>"
-	"    <property type='s' name='Bar' access='read'/>"
 	"  </interface>"
 	"</node>";
 
@@ -538,21 +512,21 @@ void start_server(GDBusConnection *connection,
 	}
 
 	// Register callbacks.
-	g_hash_table_insert(state.server_callbacks, "window.make", &server_window_make);
-	g_hash_table_insert(state.server_callbacks, "window.set.title", &server_window_set_title);
-	g_hash_table_insert(state.server_callbacks, "window.delete", &server_window_delete);
-	g_hash_table_insert(state.server_callbacks, "window.active", &server_window_active);
-	g_hash_table_insert(state.server_callbacks, "window.exists", &server_window_exists);
-	g_hash_table_insert(state.server_callbacks, "window.set.active.buffer", &server_window_set_active_buffer);
-	g_hash_table_insert(state.server_callbacks, "window.set.minibuffer.height", &server_window_set_minibuffer_height);
-	g_hash_table_insert(state.server_callbacks, "buffer.make", &server_buffer_make);
-	g_hash_table_insert(state.server_callbacks, "buffer.delete", &server_buffer_delete);
-	g_hash_table_insert(state.server_callbacks, "buffer.load", &server_buffer_load);
-	g_hash_table_insert(state.server_callbacks, "buffer.evaluate.javascript", &server_buffer_evaluate);
-	g_hash_table_insert(state.server_callbacks, "minibuffer.evaluate.javascript", &server_minibuffer_evaluate);
-	g_hash_table_insert(state.server_callbacks, "generate.input.event", &server_generate_input_event);
-	g_hash_table_insert(state.server_callbacks, "set.proxy", &server_set_proxy);
-	g_hash_table_insert(state.server_callbacks, "get.proxy", &server_get_proxy);
+	g_hash_table_insert(state.server_callbacks, "WindowMake", &server_window_make);
+	g_hash_table_insert(state.server_callbacks, "WindowSetTitle", &server_window_set_title);
+	/* g_hash_table_insert(state.server_callbacks, "windowDelete", &server_window_delete); */
+	g_hash_table_insert(state.server_callbacks, "WindowActive", &server_window_active);
+	/* g_hash_table_insert(state.server_callbacks, "windowExists", &server_window_exists); */
+	g_hash_table_insert(state.server_callbacks, "WindowSetActiveBuffer", &server_window_set_active_buffer);
+	g_hash_table_insert(state.server_callbacks, "WindowSetMinibufferHeight", &server_window_set_minibuffer_height);
+	g_hash_table_insert(state.server_callbacks, "BufferMake", &server_buffer_make);
+	/* g_hash_table_insert(state.server_callbacks, "buffer.delete", &server_buffer_delete); */
+	g_hash_table_insert(state.server_callbacks, "BufferLoad", &server_buffer_load);
+	g_hash_table_insert(state.server_callbacks, "BufferEvaluateJavascript", &server_buffer_evaluate);
+	g_hash_table_insert(state.server_callbacks, "MinibufferEvaluateJavascript", &server_minibuffer_evaluate);
+	/* g_hash_table_insert(state.server_callbacks, "generate.input.event", &server_generate_input_event); */
+	/* g_hash_table_insert(state.server_callbacks, "set.proxy", &server_set_proxy); */
+	/* g_hash_table_insert(state.server_callbacks, "get.proxy", &server_get_proxy); */
 }
 
 void stop_server() {
