@@ -106,13 +106,16 @@ commands.")
   "Start the RPC server."
   (setf (active-connection interface)
         (handler-case
-            (dbus:with-open-bus (bus (dbus:session-server-addresses))
-              (format t "Bus connection name: ~A~%" (dbus:bus-name bus))
-              ;; TODO: Make sure the following returns.
-              (dbus:publish-objects bus))
+            (bt:make-thread
+             (lambda ()
+               (dbus:with-open-bus (bus (dbus:session-server-addresses))
+                 (format t "Bus connection name: ~A~%" (dbus:bus-name bus))
+                 (dbus:request-name bus +core-name+)
+                 (dbus:publish-objects bus))))
           (end-of-file ()
             (let ((url-list (or *free-args*
                                 (list (get-default 'buffer 'default-new-buffer-url)))))
+              ;; TODO: Check for single-instance differently.
               (format *error-output* "Next already started, requesting to open URL(s) ~a.~%"
                       url-list)
               (%xml-rpc-send interface "make.buffers" url-list)
@@ -123,18 +126,16 @@ commands.")
   (when (active-connection interface)
     (log:debug "Stopping server")
     ;; TODO: How do we close the connection?
-    ;; (ignore-errors
-    ;;  (dbus:close-connection (bus-connection (bus remote-interface))))
-    ))
+    (bt:destroy-thread (active-connection interface))))
 
-(defmethod %xml-rpc-send ((interface remote-interface) (method string) (args list))
+(defmethod %xml-rpc-send ((interface remote-interface) (method string) &rest args)
   ;; TODO: Make %xml-rpc-send asynchronous?
   ;; If the platform port ever hangs, the next %xml-rpc-send will hang the Lisp core too.
   ;; Always ensure we send the auth token as the first argument
   ;; TODO: Catch connection errors and execution errors.
-  (with-open-bus (bus (session-server-addresses))
-    (with-introspected-object (platform-port bus +platform-port-object+ +platform-port-name+)
-      (platform-port +platform-port-interface+ method args))))
+  (dbus:with-open-bus (bus (dbus:session-server-addresses))
+    (dbus:with-introspected-object (platform-port bus +platform-port-object+ +platform-port-name+)
+      (apply #'platform-port +platform-port-interface+ method args))))
 
 ;; TODO: Move to separate packages:
 ;; - next-rpc
@@ -157,7 +158,7 @@ commands.")
   (let* ((window-id (get-unique-window-identifier interface))
          (window (make-instance 'window :id window-id)))
     (setf (gethash window-id (windows interface)) window)
-    (%xml-rpc-send interface "window.make" window-id)
+    (%xml-rpc-send interface "WindowMake" window-id)
     (unless (last-active-window interface)
       ;; When starting from a REPL, it's possible that the window is spawned in
       ;; the background and %%window-active would then return nil.

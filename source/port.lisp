@@ -61,12 +61,10 @@ as a string.")
     (log:info "Platform port arguments: ~a" port-args)
     (log:info "Platform port log file: ~a" port-log-file)
     (ensure-directories-exist (directory-namestring port-log-file))
-    (setf (uiop:getenv "NEXT_RPC_AUTH_TOKEN") (interface-auth *interface*))
     (setf (running-process port)
           (uiop:launch-program (cons port-path port-args)
                                :output port-log-file
-                               :error-output :output))
-    (setf (uiop:getenv "NEXT_RPC_AUTH_TOKEN") "")))
+                               :error-output :output))))
 
 (defmethod kill-program ((port port))
   (uiop:run-program
