@@ -51,7 +51,7 @@ static void buffer_web_view_load_changed(WebKitWebView *web_view,
 	WebKitLoadEvent load_event,
 	gpointer data) {
 	const char *uri = webkit_web_view_get_uri(web_view);
-	const char *method_name = "buffer.did.commit.navigation";
+	const char *method_name = "buffer_did_commit_navigation";
 
 	switch (load_event) {
 	case WEBKIT_LOAD_STARTED:
@@ -81,7 +81,7 @@ static void buffer_web_view_load_changed(WebKitWebView *web_view,
 		break;
 	case WEBKIT_LOAD_FINISHED:
 		/* Load finished, we can now stop the spinner */
-		method_name = "buffer.did.finish.navigation";
+		method_name = "buffer_did_finish_navigation";
 	}
 
 	if (uri == NULL) {
@@ -219,7 +219,7 @@ gboolean buffer_web_view_decide_policy(WebKitWebView *_web_view,
 		}
 	}
 
-	const char *method_name = "request.resource";
+	const char *method_name = "request_resource";
 
 	// TODO: Test if it's a redirect?
 	Buffer *buffer = bufferp;

@@ -88,7 +88,7 @@ void window_delete(Window *window) {
 	{
 		// Notify the Lisp core.
 		GError *error = NULL;
-		const char *method_name = "window.will.close";
+		const char *method_name = "window_will_close";
 		GVariant *window_id = g_variant_new("(s)", window->identifier);
 		g_message("RPC message: %s %s", method_name, g_variant_print(window_id, TRUE));
 
@@ -236,7 +236,7 @@ void window_consume_event(SoupSession *_session, SoupMessage *msg, gpointer wind
 	}
 
 	Window *window = window_event->window;
-	const char *method_name = "consume.key.sequence";
+	const char *method_name = "consume_key_sequence";
 	GVariant *id = g_variant_new("(s)",
 			window->identifier);
 	g_message("RPC message: %s, window id %s", method_name, window->identifier);
@@ -271,7 +271,7 @@ gboolean window_send_event(gpointer window_data,
 	}
 
 	GError *error = NULL;
-	const char *method_name = "push.input.event";
+	const char *method_name = "push_input_event";
 	Window *window = window_data;
 	GVariant *key_chord = g_variant_new("(isasddis)",
 			hardware_keycode,

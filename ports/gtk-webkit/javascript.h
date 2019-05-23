@@ -46,7 +46,7 @@ void javascript_transform_result(GObject *object, GAsyncResult *result,
 	}
 
 	GError *error = NULL;
-	const char *method_name = "buffer.javascript.call.back";
+	const char *method_name = "buffer_javascript_call_back";
 	char *callback_string = g_strdup_printf("%i", callback_id);
 	GVariant *params = g_variant_new(
 		"(sss)",
