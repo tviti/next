@@ -110,20 +110,24 @@ static GVariant *server_buffer_make(GVariant *parameters) {
 	// TODO: Use a dictionary now that we use D-Bus.
 	{
 		GVariantIter *iter;
+		g_variant_get(parameters, "(&s)", &a_key);
+
+		/*
 		g_variant_get(parameters, "(&sav)", &a_key, &iter);
 
 		GVariant *str_variant;
 		gchar *key = NULL;
 		gchar *value = NULL;
 		while (g_variant_iter_loop(iter, "v", &str_variant)) {
-			if (key == NULL) {
-				g_variant_get(str_variant, "s", &key);
-			} else {
-				g_variant_get(str_variant, "s", &value);
-				g_hash_table_insert(options, key, value);
-			}
+		        if (key == NULL) {
+		                g_variant_get(str_variant, "s", &key);
+		        } else {
+		                g_variant_get(str_variant, "s", &value);
+		                g_hash_table_insert(options, key, value);
+		        }
 		}
 		g_variant_iter_free(iter);
+		*/
 	}
 	g_message("Method parameter(s): buffer ID %s, cookie file %s", a_key,
 		g_hash_table_lookup(options, "COOKIES-PATH"));

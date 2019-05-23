@@ -226,8 +226,10 @@ commands.")
     (ensure-parent-exists (cookies-path buffer))
     (setf (gethash buffer-id (buffers interface)) buffer)
     (%xml-rpc-send interface "buffer_make" buffer-id
-                   (list
-                    :cookies-path (namestring (cookies-path buffer))))
+                   ;; TODO: Pass dictionary.
+                   ;; (list
+                   ;;  :cookies-path (namestring (cookies-path buffer)))
+                   )
     buffer))
 
 ;; TODO: Use keys instead of &optional.

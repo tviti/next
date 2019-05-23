@@ -60,8 +60,8 @@ static ServerState state = {
 		"  <interface name='engineer.atlas.next.platform'>"
 		"    <method name='buffer_make'>"
 		"      <arg type='s' name='id' direction='in'/>"
-		"      <arg type='a' name='options' direction='in'/>"
-		"      <arg type='b' name='new_id' direction='out'/>"
+	        /* "      <arg type='a' name='options' direction='in'/>" */
+		"      <arg type='s' name='new_id' direction='out'/>"
 		"    </method>"
 		"  </interface>"
 		"  <interface name='engineer.atlas.next.platform'>"
