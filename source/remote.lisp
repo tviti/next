@@ -118,7 +118,7 @@ commands.")
               ;; TODO: Check for single-instance differently.
               (format *error-output* "Next already started, requesting to open URL(s) ~a.~%"
                       url-list)
-              (%xml-rpc-send interface "make.buffers" url-list)
+              (%xml-rpc-send interface "make_buffers" url-list)
               (uiop:quit))))))
 
 (defmethod kill-interface ((interface remote-interface))
@@ -316,7 +316,6 @@ events."
 (dbus:define-dbus-object core-object
   (:path +core-object+))
 
-;; TODO: Double-check the parameter types and the result types.
 ;; TODO: Remove the periods from the methods?
 
 (dbus:define-dbus-method (core-object |buffer.javascript.call.back|)
@@ -368,7 +367,7 @@ events."
     (remhash window-id windows)))
 
 (dbus:define-dbus-method (core-object |make.buffers|)
-    ((urls :string))
+    ((urls (:array :string)))
     ()
   (:interface +core-interface+)
   (:name "make_buffers")
@@ -389,7 +388,7 @@ events."
 ;; Return whether URL should be loaded or not.
 (dbus:define-dbus-method (core-object |request.resource|)
     ((buffer-id :string) (url :string) (event-type :string) (is-new-window :boolean)
-     (is-known-type :boolean) (mouse-button :string) (modifiers :string))
+     (is-known-type :boolean) (mouse-button :string) (modifiers (:array :string)))
     ()
   (:interface +core-interface+)
   (:name "request_resource")
