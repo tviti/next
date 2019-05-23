@@ -476,9 +476,63 @@ static const GDBusInterfaceVTable interface_vtable = {
 static const gchar introspection_xml[] =
 	"<node>"
 	"  <interface name='engineer.atlas.next.platform'>"
-	"    <method name='WindowMake'>"
+	"    <method name='window_make'>"
 	"      <arg type='s' name='id' direction='in'/>"
-	"      <arg type='s' name='newId' direction='out'/>"
+	"      <arg type='s' name='new_id' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='window_set_title'>"
+	"      <arg type='s' name='id' direction='in'/>"
+	"      <arg type='s' name='title' direction='in'/>"
+	"      <arg type='b' name='status' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='window_active'>"
+	"      <arg type='s' name='id' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='window_set_active_buffer'>"
+	"      <arg type='s' name='window_id' direction='in'/>"
+	"      <arg type='s' name='buffer_id' direction='in'/>"
+	"      <arg type='b' name='status' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='window_set_minibuffer_height'>"
+	"      <arg type='s' name='window_id' direction='in'/>"
+	"      <arg type='i' name='height' direction='in'/>"
+	"      <arg type='i' name='new_height' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='buffer_make'>"
+	"      <arg type='s' name='id' direction='in'/>"
+	"      <arg type='a' name='options' direction='in'/>"
+	"      <arg type='b' name='new_id' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='buffer_load'>"
+	"      <arg type='s' name='buffer_id' direction='in'/>"
+	"      <arg type='s' name='uri' direction='in'/>"
+	"      <arg type='b' name='status' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='buffer_evaluate_javascript'>"
+	"      <arg type='s' name='buffer_id' direction='in'/>"
+	"      <arg type='s' name='javascript' direction='in'/>"
+	"      <arg type='s' name='callback_id' direction='out'/>"
+	"    </method>"
+	"  </interface>"
+	"  <interface name='engineer.atlas.next.platform'>"
+	"    <method name='minibuffer_evaluate_javascript'>"
+	"      <arg type='s' name='window_id' direction='in'/>"
+	"      <arg type='s' name='javascript' direction='in'/>"
+	"      <arg type='s' name='callback_id' direction='out'/>"
 	"    </method>"
 	"  </interface>"
 	"</node>";
@@ -512,18 +566,18 @@ void start_server(GDBusConnection *connection,
 	}
 
 	// Register callbacks.
-	g_hash_table_insert(state.server_callbacks, "WindowMake", &server_window_make);
-	g_hash_table_insert(state.server_callbacks, "WindowSetTitle", &server_window_set_title);
-	/* g_hash_table_insert(state.server_callbacks, "windowDelete", &server_window_delete); */
-	g_hash_table_insert(state.server_callbacks, "WindowActive", &server_window_active);
-	/* g_hash_table_insert(state.server_callbacks, "windowExists", &server_window_exists); */
-	g_hash_table_insert(state.server_callbacks, "WindowSetActiveBuffer", &server_window_set_active_buffer);
-	g_hash_table_insert(state.server_callbacks, "WindowSetMinibufferHeight", &server_window_set_minibuffer_height);
-	g_hash_table_insert(state.server_callbacks, "BufferMake", &server_buffer_make);
+	g_hash_table_insert(state.server_callbacks, "window_make", &server_window_make);
+	g_hash_table_insert(state.server_callbacks, "window_set_title", &server_window_set_title);
+	/* g_hash_table_insert(state.server_callbacks, "window_delete", &server_window_delete); */
+	g_hash_table_insert(state.server_callbacks, "window_active", &server_window_active);
+	/* g_hash_table_insert(state.server_callbacks, "window_exists", &server_window_exists); */
+	g_hash_table_insert(state.server_callbacks, "window_set_active_buffer", &server_window_set_active_buffer);
+	g_hash_table_insert(state.server_callbacks, "window_set_minibuffer_height", &server_window_set_minibuffer_height);
+	g_hash_table_insert(state.server_callbacks, "buffer_make", &server_buffer_make);
 	/* g_hash_table_insert(state.server_callbacks, "buffer.delete", &server_buffer_delete); */
-	g_hash_table_insert(state.server_callbacks, "BufferLoad", &server_buffer_load);
-	g_hash_table_insert(state.server_callbacks, "BufferEvaluateJavascript", &server_buffer_evaluate);
-	g_hash_table_insert(state.server_callbacks, "MinibufferEvaluateJavascript", &server_minibuffer_evaluate);
+	g_hash_table_insert(state.server_callbacks, "buffer_load", &server_buffer_load);
+	g_hash_table_insert(state.server_callbacks, "buffer_evaluate_javascript", &server_buffer_evaluate);
+	g_hash_table_insert(state.server_callbacks, "minibuffer_evaluate_javascript", &server_minibuffer_evaluate);
 	/* g_hash_table_insert(state.server_callbacks, "generate.input.event", &server_generate_input_event); */
 	/* g_hash_table_insert(state.server_callbacks, "set.proxy", &server_set_proxy); */
 	/* g_hash_table_insert(state.server_callbacks, "get.proxy", &server_get_proxy); */
