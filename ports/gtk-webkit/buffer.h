@@ -108,27 +108,27 @@ typedef struct  {
 	const gchar *uri;
 } DecisionInfo;
 
-void buffer_navigated_callback(SoupSession *_session, SoupMessage *msg, gpointer data) {
+void buffer_navigated_callback(GObject *_source, GAsyncResult *res, gpointer data) {
 	GError *error = NULL;
-	g_debug("Buffer navigation RPC response: %s", msg->response_body->data);
 
-	// TODO: Use boolean instead of integer when Atlas' s-xml-rpc package is in
-	// Quicklisp.
-	GVariant *loadv = soup_xmlrpc_parse_response(msg->response_body->data,
-			msg->response_body->length, "i", &error);
+	GVariant *loadv = g_dbus_connection_call_finish(state.connection,
+			res,
+			&error);
 
 	if (error) {
-		g_warning("%s: '%s'", error->message,
-			strndup(msg->response_body->data, msg->response_body->length));
+		g_warning("%s", error->message);
 		g_error_free(error);
 		return;
 	}
 
-	gint32 load = g_variant_get_int32(loadv);
+	g_debug("Buffer navigation RPC response: %s", g_variant_print(loadv, TRUE));
+	gboolean load;
+	g_variant_get(loadv, "(b)", &load);
+	g_variant_unref(loadv);
 
 	DecisionInfo *decision_info = data;
 	WebKitPolicyDecision *decision = decision_info->decision;
-	if (load != 0) {
+	if (load) {
 		// TODO: Should we download or use when it's a RESPONSE?
 		g_debug("Load resource '%s'", decision_info->uri);
 		webkit_policy_decision_use(decision);
