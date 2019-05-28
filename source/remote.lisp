@@ -118,7 +118,7 @@ commands.")
               ;; TODO: Check for single-instance differently.
               (format *error-output* "Next already started, requesting to open URL(s) ~a.~%"
                       url-list)
-              (%xml-rpc-send interface "make_buffers" url-list)
+              (%rpc-send interface "make_buffers" url-list)
               (uiop:quit))))))
 
 (defmethod kill-interface ((interface remote-interface))
@@ -128,10 +128,9 @@ commands.")
     ;; TODO: How do we close the connection?
     (bt:destroy-thread (active-connection interface))))
 
-;; TODO: Rename %xml-rpc-send.
-(defmethod %xml-rpc-send ((interface remote-interface) (method string) &rest args)
-  ;; TODO: Make %xml-rpc-send asynchronous?
-  ;; If the platform port ever hangs, the next %xml-rpc-send will hang the Lisp core too.
+(defmethod %rpc-send ((interface remote-interface) (method string) &rest args)
+  ;; TODO: Make %rpc-send asynchronous?
+  ;; If the platform port ever hangs, the next %rpc-send will hang the Lisp core too.
   ;; Always ensure we send the auth token as the first argument
   ;; TODO: Catch connection errors and execution errors.
   (dbus:with-open-bus (bus (dbus:session-server-addresses))
@@ -144,7 +143,7 @@ commands.")
 (defmethod %%list-methods ((interface remote-interface))
   "Return the unsorted list of RPC methods supported by the platform port."
   ;; TODO: Find the right way to do this in dbus.
-  (%xml-rpc-send interface "listMethods"))
+  (%rpc-send interface "listMethods"))
 
 (defmethod get-unique-window-identifier ((interface remote-interface))
   (incf (total-window-count interface))
@@ -159,7 +158,7 @@ commands.")
   (let* ((window-id (get-unique-window-identifier interface))
          (window (make-instance 'window :id window-id)))
     (setf (gethash window-id (windows interface)) window)
-    (%xml-rpc-send interface "window_make" window-id)
+    (%rpc-send interface "window_make" window-id)
     (unless (last-active-window interface)
       ;; When starting from a REPL, it's possible that the window is spawned in
       ;; the background and %%window-active would then return nil.
@@ -168,18 +167,18 @@ commands.")
 
 (defmethod %%window-set-title ((interface remote-interface) (window window) title)
   "Set the title for a given window."
-  (%xml-rpc-send interface "window_set_title" (id window) title))
+  (%rpc-send interface "window_set_title" (id window) title))
 
 (defmethod %%window-delete ((interface remote-interface) (window window))
   "Delete a window object and remove it from the hash of windows."
-  (%xml-rpc-send interface "window_delete" (id window))
+  (%rpc-send interface "window_delete" (id window))
   (with-slots (windows) interface
     (remhash (id window) windows)))
 
 (defmethod %%window-active ((interface remote-interface))
   "Return the window object for the currently active window."
   (with-slots (windows) interface
-    (let ((window (gethash (%xml-rpc-send interface "window_active")
+    (let ((window (gethash (%rpc-send interface "window_active")
                            windows)))
       (when window
         (setf (last-active-window interface) window))
@@ -187,12 +186,12 @@ commands.")
 
 (defmethod %%window-exists ((interface remote-interface) (window window))
   "Return if a window exists."
-  (%xml-rpc-send interface "window_exists" (id window)))
+  (%rpc-send interface "window_exists" (id window)))
 
 (defmethod %%window-set-active-buffer ((interface remote-interface)
                                       (window window)
                                       (buffer buffer))
-  (%xml-rpc-send interface "window_set_active_buffer" (id window) (id buffer))
+  (%rpc-send interface "window_set_active_buffer" (id window) (id buffer))
   (setf (active-buffer window) buffer))
 
 (defmethod window-set-active-buffer ((interface remote-interface)
@@ -215,7 +214,7 @@ commands.")
 
 (defmethod %%window-set-minibuffer-height ((interface remote-interface)
                                          window height)
-  (%xml-rpc-send interface "window_set_minibuffer_height" (id window) height))
+  (%rpc-send interface "window_set_minibuffer_height" (id window) height))
 
 (defmethod %%buffer-make ((interface remote-interface)
                           &key name mode)
@@ -225,7 +224,7 @@ commands.")
                                 (when mode `(:mode ,mode))))))
     (ensure-parent-exists (cookies-path buffer))
     (setf (gethash buffer-id (buffers interface)) buffer)
-    (%xml-rpc-send interface "buffer_make" buffer-id
+    (%rpc-send interface "buffer_make" buffer-id
                    ;; TODO: Pass dictionary.
                    ;; (list
                    ;;  :cookies-path (namestring (cookies-path buffer)))
@@ -255,20 +254,20 @@ commands.")
                         (alexandria:hash-table-values (windows *interface*))))
         (replacement-buffer (or (%get-inactive-buffer interface)
                                 (buffer-make interface))))
-    (%xml-rpc-send interface "buffer_delete" (id buffer))
+    (%rpc-send interface "buffer_delete" (id buffer))
     (when parent-window
       (window-set-active-buffer interface parent-window replacement-buffer))
     (with-slots (buffers) interface
       (remhash (id buffer) buffers))))
 
 (defmethod %%buffer-load ((interface remote-interface) (buffer buffer) uri)
-  (%xml-rpc-send interface "buffer_load" (id buffer) uri))
+  (%rpc-send interface "buffer_load" (id buffer) uri))
 
 (defmethod %%buffer-evaluate-javascript ((interface remote-interface)
                                          (buffer buffer) javascript
                                          &optional (callback nil))
   (let ((callback-id
-          (%xml-rpc-send interface "buffer_evaluate_javascript" (id buffer) javascript)))
+          (%rpc-send interface "buffer_evaluate_javascript" (id buffer) javascript)))
     (setf (gethash callback-id (callbacks buffer)) callback)
     callback-id))
 
@@ -276,7 +275,7 @@ commands.")
                                              (window window) javascript
                                              &optional (callback nil))
   (let ((callback-id
-          (%xml-rpc-send interface "minibuffer_evaluate_javascript" (id window) javascript)))
+          (%rpc-send interface "minibuffer_evaluate_javascript" (id window) javascript)))
     (setf (gethash callback-id (minibuffer-callbacks window)) callback)
     callback-id))
 
@@ -293,7 +292,7 @@ events."
               (key-chord-low-level-data event)
               (key-chord-position event))
              (id window))
-  (%xml-rpc-send interface "generate_input_event"
+  (%rpc-send interface "generate_input_event"
                  (id window)
                  (key-chord-key-code event)
                  (or (key-chord-modifiers event) (list ""))
@@ -303,14 +302,14 @@ events."
 
 (defmethod %%set-proxy ((interface remote-interface) (buffer buffer)
                       &optional (proxy-uri "") (ignore-hosts (list nil)))
-  (%xml-rpc-send interface "set_proxy" (list (id buffer))
+  (%rpc-send interface "set_proxy" (list (id buffer))
                  (if (string= proxy-uri "")
                      "default"
                      "custom")
                  proxy-uri ignore-hosts))
 
 (defmethod %%get-proxy ((interface remote-interface) (buffer buffer))
-  (%xml-rpc-send interface "get_proxy" (id buffer)))
+  (%rpc-send interface "get_proxy" (id buffer)))
 
 
 ;; Expose Lisp Core RPC endpoints.
