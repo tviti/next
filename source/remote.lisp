@@ -225,11 +225,8 @@ commands.")
     (ensure-parent-exists (cookies-path buffer))
     (setf (gethash buffer-id (buffers interface)) buffer)
     (%rpc-send interface "buffer_make" buffer-id
-                   ;; TODO: Pass dictionary.
-                   ;; (list
-                   ;;  :cookies-path (namestring (cookies-path buffer)))
-                   )
-    buffer))
+               `(("COOKIES-PATH" ,(namestring (cookies-path buffer)))))
+             buffer))
 
 ;; TODO: Use keys instead of &optional.
 (defmethod buffer-make ((interface remote-interface)
