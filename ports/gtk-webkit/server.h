@@ -110,7 +110,7 @@ static GVariant *server_buffer_make(GVariant *parameters) {
 		g_variant_print(options, TRUE));
 
 	char *cookies_path = NULL;
-	g_variant_lookup(options, "COOKIES-PATH", "s", &cookies_path);
+	g_variant_lookup(options, "cookies-path", "s", &cookies_path);
 
 	Buffer *buffer = buffer_init(cookies_path);
 
