@@ -104,34 +104,16 @@ static GVariant *server_window_set_active_buffer(GVariant *parameters) {
 
 static GVariant *server_buffer_make(GVariant *parameters) {
 	const char *a_key = NULL;
-	GHashTable *options = g_hash_table_new(g_str_hash, g_str_equal);
-	// Options are passed as a list of string.  We could have used a dictionary,
-	// but the Cocoa XML-RPC library does not support it.
-	// TODO: Use a dictionary now that we use D-Bus.
-	{
-		GVariantIter *iter;
-		g_variant_get(parameters, "(&s)", &a_key);
+	GVariant *options;
+	g_variant_get(parameters, "(&s@a{ss})", &a_key, &options);
+	g_message("Method parameter(s): buffer ID %s, options %s", a_key,
+		g_variant_print(options, TRUE));
 
-		/*
-		g_variant_get(parameters, "(&sav)", &a_key, &iter);
+	char *cookies_path = NULL;
+	g_variant_lookup(options, "COOKIES-PATH", "s", &cookies_path);
 
-		GVariant *str_variant;
-		gchar *key = NULL;
-		gchar *value = NULL;
-		while (g_variant_iter_loop(iter, "v", &str_variant)) {
-		        if (key == NULL) {
-		                g_variant_get(str_variant, "s", &key);
-		        } else {
-		                g_variant_get(str_variant, "s", &value);
-		                g_hash_table_insert(options, key, value);
-		        }
-		}
-		g_variant_iter_free(iter);
-		*/
-	}
-	g_message("Method parameter(s): buffer ID %s, cookie file %s", a_key,
-		g_hash_table_lookup(options, "COOKIES-PATH"));
-	Buffer *buffer = buffer_init(g_hash_table_lookup(options, "COOKIES-PATH"));
+	Buffer *buffer = buffer_init(cookies_path);
+
 	g_hash_table_insert(state.buffers, strdup(a_key), buffer);
 	buffer->identifier = strdup(a_key);
 	g_message("Method result(s): buffer id %s", buffer->identifier);

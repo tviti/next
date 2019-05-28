@@ -50,7 +50,7 @@ static ServerState state = {
 		"    </method>"
 		"    <method name='buffer_make'>"
 		"      <arg type='s' name='id' direction='in'/>"
-	        /* "      <arg type='a' name='options' direction='in'/>" */
+		"      <arg type='a{ss}' name='options' direction='in'/>"
 		"      <arg type='s' name='new_id' direction='out'/>"
 		"    </method>"
 		"    <method name='buffer_load'>"
