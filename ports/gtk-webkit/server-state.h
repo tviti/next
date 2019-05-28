@@ -46,7 +46,7 @@ static ServerState state = {
 		"    <method name='window_set_minibuffer_height'>"
 		"      <arg type='s' name='window_id' direction='in'/>"
 		"      <arg type='i' name='height' direction='in'/>"
-		"      <arg type='i' name='new_height' direction='out'/>"
+		"      <arg type='x' name='new_height' direction='out'/>"
 		"    </method>"
 		"    <method name='buffer_make'>"
 		"      <arg type='s' name='id' direction='in'/>"
