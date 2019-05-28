@@ -281,8 +281,8 @@ commands.")
     callback-id))
 
 (defmethod %%generate-input-event ((interface remote-interface)
-                                 (window window)
-                                 (event key-chord))
+                                   (window window)
+                                   (event key-chord))
   "For now, we only generate keyboard events.
 In the future, we could also support other input device events such as mouse
 events."
@@ -322,7 +322,7 @@ events."
 
 (dbus:define-dbus-method (core-object |buffer.javascript.call.back|)
     ((buffer-id :string) (javascript-response :string) (callback-id :string))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "buffer_javascript_call_back")
   (let ((buffer (gethash buffer-id (buffers *interface*))))
@@ -330,50 +330,56 @@ events."
     (when buffer
       (let ((callback (gethash callback-id (callbacks buffer))))
         (when callback
-          (funcall callback javascript-response))))))
+          (funcall callback javascript-response))))
+    nil))
 
 (dbus:define-dbus-method (core-object |minibuffer.javascript.call.back|)
     ((window-id :string) (javascript-response :string) (callback-id :string))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "minibuffer_javascript_call_back")
   (let* ((window (gethash window-id (windows *interface*)))
          (callback (gethash callback-id (minibuffer-callbacks window))))
     (when callback
-      (funcall callback javascript-response))))
+      (funcall callback javascript-response))
+    nil))
 
 (dbus:define-dbus-method (core-object |buffer.did.commit.navigation|)
     ((buffer-id :string) (url :string))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "buffer_did_commit_navigation")
   (let ((buffer (gethash buffer-id (buffers *interface*))))
-    (did-commit-navigation buffer url)))
+    (did-commit-navigation buffer url)
+    nil))
 
 (dbus:define-dbus-method (core-object |buffer.did.finish.navigation|)
     ((buffer-id :string) (url :string))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "buffer_did_finish_navigation")
   (let ((buffer (gethash buffer-id (buffers *interface*))))
-    (did-finish-navigation buffer url)))
+    (did-finish-navigation buffer url)
+    nil))
 
 (dbus:define-dbus-method (core-object |window.will.close|)
     ((window-id :string))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "window_will_close")
   (let ((windows (windows *interface*)))
     (log:debug "Closing window ID ~a (new total: ~a)" window-id
                (1- (length (alexandria:hash-table-values windows))))
-    (remhash window-id windows)))
+    (remhash window-id windows)
+    nil))
 
 (dbus:define-dbus-method (core-object |make.buffers|)
     ((urls (:array :string)))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "make_buffers")
-  (make-buffers urls))
+  (make-buffers urls)
+  nil)
 
 (defun make-buffers (urls)
   "Create new buffers from URLs."
@@ -391,7 +397,7 @@ events."
 (dbus:define-dbus-method (core-object |request.resource|)
     ((buffer-id :string) (url :string) (event-type :string) (is-new-window :boolean)
      (is-known-type :boolean) (mouse-button :string) (modifiers (:array :string)))
-    ()
+    (:boolean)
   (:interface +core-interface+)
   (:name "request_resource")
   (declare (ignore event-type))
@@ -401,13 +407,13 @@ events."
       (is-new-window
        (log:info "Load ~a in new window" url)
        (make-buffers url)
-       0)
+       nil)
       ((not is-known-type)
        (log:info "Buffer ~a downloads ~a" buffer url)
-       0)
+       nil)
       (t
        (log:info "Forwarding ~a back to platform port" url)
-       1))
+       t))
     ;; TODO: Move the cond to RESOURCE-QUERY-FUNCTIONS to let the user customize
     ;; the behaviour.
     ;; (if (loop for function in (resource-query-functions buffer)
