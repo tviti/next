@@ -23,9 +23,10 @@
 For example, it may add C-M-s or C-x to a stack which will be consumed by
 `|consume.key.sequence|'."
 (dbus:define-dbus-method (core-object |push.input.event|)
-    ((key-code :string) (key-string :string) (modifiers :string) (x :double) (y :double)
-     (low-level-data :string) (sender :string))
-    ()
+    ((key-code :int32) (key-string :string) (modifiers (:array :string))
+     (x :double) (y :double)
+     (low-level-data :int32) (sender :string))
+    (:boolean)
   (:interface +core-interface+)
   (:name "push_input_event")
   (let ((key-chord (make-key-chord
