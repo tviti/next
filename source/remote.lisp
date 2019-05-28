@@ -143,7 +143,7 @@ commands.")
 ;; - next-script (?)
 (defmethod %%list-methods ((interface remote-interface))
   "Return the unsorted list of RPC methods supported by the platform port."
-  ;; TODO: Find the right way to do this.  Also this is used to poll the platform port.
+  ;; TODO: Find the right way to do this in dbus.
   (%xml-rpc-send interface "listMethods"))
 
 (defmethod get-unique-window-identifier ((interface remote-interface))
@@ -318,9 +318,7 @@ events."
 (dbus:define-dbus-object core-object
   (:path +core-object+))
 
-;; TODO: Remove the periods from the methods?
-
-(dbus:define-dbus-method (core-object |buffer.javascript.call.back|)
+(dbus:define-dbus-method (core-object buffer-javascript-call-back)
     ((buffer-id :string) (javascript-response :string) (callback-id :string))
     (:boolean)
   (:interface +core-interface+)
@@ -333,7 +331,7 @@ events."
           (funcall callback javascript-response))))
     nil))
 
-(dbus:define-dbus-method (core-object |minibuffer.javascript.call.back|)
+(dbus:define-dbus-method (core-object minibuffer-javascript-call-back)
     ((window-id :string) (javascript-response :string) (callback-id :string))
     (:boolean)
   (:interface +core-interface+)
@@ -344,7 +342,7 @@ events."
       (funcall callback javascript-response))
     nil))
 
-(dbus:define-dbus-method (core-object |buffer.did.commit.navigation|)
+(dbus:define-dbus-method (core-object buffer-did-commit-navigation)
     ((buffer-id :string) (url :string))
     (:boolean)
   (:interface +core-interface+)
@@ -353,7 +351,7 @@ events."
     (did-commit-navigation buffer url)
     nil))
 
-(dbus:define-dbus-method (core-object |buffer.did.finish.navigation|)
+(dbus:define-dbus-method (core-object buffer-did-finish-navigation)
     ((buffer-id :string) (url :string))
     (:boolean)
   (:interface +core-interface+)
@@ -362,7 +360,7 @@ events."
     (did-finish-navigation buffer url)
     nil))
 
-(dbus:define-dbus-method (core-object |window.will.close|)
+(dbus:define-dbus-method (core-object window-will-close)
     ((window-id :string))
     (:boolean)
   (:interface +core-interface+)
@@ -373,7 +371,7 @@ events."
     (remhash window-id windows)
     nil))
 
-(dbus:define-dbus-method (core-object |make.buffers|)
+(dbus:define-dbus-method (core-object make-buffers)
     ((urls (:array :string)))
     (:boolean)
   (:interface +core-interface+)
@@ -394,7 +392,7 @@ events."
         (set-url-buffer url buffer)))))
 
 ;; Return whether URL should be loaded or not.
-(dbus:define-dbus-method (core-object |request.resource|)
+(dbus:define-dbus-method (core-object request-resource)
     ((buffer-id :string) (url :string) (event-type :string) (is-new-window :boolean)
      (is-known-type :boolean) (mouse-button :string) (modifiers (:array :string)))
     (:boolean)
