@@ -26,7 +26,7 @@ For example, it may add C-M-s or C-x to a stack which will be consumed by
     ((key-code :int32) (key-string :string) (modifiers (:array :string))
      (x :double) (y :double)
      (low-level-data :int32) (sender :string))
-    (:boolean)
+    ()
   (:interface +core-interface+)
   (:name "push_input_event")
   (let ((key-chord (make-key-chord
@@ -47,7 +47,7 @@ For example, it may add C-M-s or C-x to a stack which will be consumed by
           (%%generate-input-event *interface*
                                   (gethash sender (windows *interface*))
                                   key-chord))))
-  t)
+  (values))
 
 ;; TODO: If we move the global mode to root-mode, how do we make sure which one has priority?
 ;; What about reserving a prefix key for application mode and root mode?
