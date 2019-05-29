@@ -21,7 +21,7 @@
 
   "Add a new key chord to the interface key-chord-stack.
 For example, it may add C-M-s or C-x to a stack which will be consumed by
-`|consume.key.sequence|'."
+`consume-key-sequence'."
 (dbus:define-dbus-method (core-object push-input-event)
     ((key-code :int32) (key-string :string) (modifiers (:array :string))
      (x :double) (y :double)
@@ -77,7 +77,9 @@ For example, it may add C-M-s or C-x to a stack which will be consumed by
 ;; event callback in the platform port.  This has been deprecated in favour of
 ;; event generation, but we keep it around in case the new approach happens to
 ;; be not satisfying.
-(define... |consume.key.sequence| (sender)
+(dbus:define-dbus-object (core-object consume-key-sequence)
+  ((sender :string))
+  ()
   (consume-key-sequence sender))
 |#
 
