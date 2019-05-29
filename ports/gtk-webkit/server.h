@@ -34,7 +34,7 @@ static GVariant *server_window_set_title(GVariant *parameters) {
 
 	Window *window = g_hash_table_lookup(state.windows, a_key);
 	if (!window) {
-		return g_variant_new_boolean(FALSE);
+		return g_variant_new("(b)", FALSE);
 	}
 	window_set_title(window, title);
 	return g_variant_new("(b)", TRUE);
@@ -208,18 +208,16 @@ static GVariant *server_generate_input_event(GVariant *parameters) {
 	gboolean released = false;
 
 	{
-		if (!g_variant_check_format_string(parameters, "(siavidd)", FALSE)) {
+		if (!g_variant_check_format_string(parameters, "(siasidd)", FALSE)) {
 			g_warning("Malformed input event: %s", g_variant_get_type_string(parameters));
 			return g_variant_new("(b)", FALSE);
 		}
 		GVariantIter *iter;
-		g_variant_get(parameters, "(siavidd)", &window_id, &hardware_keycode,
+		g_variant_get(parameters, "(siasidd)", &window_id, &hardware_keycode,
 			&iter, &keyval, &x, &y);
 
-		GVariant *str_variant;
-		while (g_variant_iter_loop(iter, "v", &str_variant)) {
-			gchar *str;
-			g_variant_get(str_variant, "s", &str);
+		gchar *str = NULL;
+		while (g_variant_iter_loop(iter, "s", &str)) {
 			if (g_strcmp0(str, "R") == 0) {
 				released = true;
 			} else {
@@ -295,7 +293,7 @@ static GVariant *server_generate_input_event(GVariant *parameters) {
 	window_event->window = window;
 	window_generate_input_event(window_event);
 
-	return g_variant_new_boolean(TRUE);
+	return g_variant_new("(b)", TRUE);
 }
 
 // TODO: Implement introspection for D-Bus.
