@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse
 
 import utility
 import buffers
@@ -10,6 +11,7 @@ try:
     from dbus.mainloop.pyqt5 import DBusQtMainLoop as MainLoop
 except ImportError:
     from dbus.mainloop.glib import DBusGMainLoop as MainLoop
+from PyQt5.QtNetwork import QNetworkProxy, QNetworkProxyFactory
 from PyQt5.QtWidgets import QApplication
 
 logging.basicConfig(level=logging.INFO)
@@ -103,6 +105,52 @@ class DBusWindow(dbus.service.Object):
     def minibuffer_evaluate_javascript(self, window_id, script):
         _window = window.get_window(window_id)
         return _window.minibuffer_evaluate_javascript(script)
+
+    @dbus.service.method(PLATFORM_PORT_NAME, in_signature='asssas', out_signature='b')
+    def set_proxy(self, buffer_ids, mode, address, whitelist):
+        """
+        Set the proxy for the current application.
+
+        TODO: set it for the given buffers.
+        TODO: handle whitelist.
+
+        https://doc.qt.io/qt-5.9/qtwebengine-overview.html#proxy-support
+        """
+        # XXX: currently the address in proxy-mode is 'socks5://127.0.0.1:9050'.
+        parsed_url = urlparse(address)
+        scheme = parsed_url.scheme.lower()
+        if 'socks5' in scheme:
+            proxy_type = QNetworkProxy.Socks5Proxy
+        elif 'httpproxy' in scheme:
+            proxy_type = QNetworkProxy.HttpProxy
+        elif 'httpcaching' in scheme:
+            proxy_type = QNetworkProxy.HttpCachingProxy
+        elif 'default' in scheme:
+            proxy_type = QNetworkProxy.DefaultProxy
+            logging.warn("Using the default proxy is currently unimplemented.")
+
+        if ':' in parsed_url.netloc:
+            address, port = parsed_url.netloc.split(':')
+            try:
+                port = int(port)
+            except Exception:
+                logging.warn("Invalid port: '{}'. Could not parse it as an int.".formatport)
+                return False
+
+        proxy = QNetworkProxy()
+        proxy.setType(proxy_type)
+        proxy.setHostName(address)
+        proxy.setPort(port)
+
+        QNetworkProxy.setApplicationProxy(proxy)
+        logging.info("proxy set to address '{}'.".format(address))
+
+        # Trying to use system's defaults:
+        # QNetworkProxyFactory.setUseSystemConfiguration(True)
+
+    @dbus.service.method(PLATFORM_PORT_NAME, out_signature='s')
+    def get_proxy(self):
+        QNetworkProxy.hostName(QNetworkProxy.applicationProxy())
 
     @dbus.service.method(PLATFORM_PORT_NAME, in_signature='siasidd')
     def generate_input_event(self, window_id, key_code, modifiers, low_level_data, x, y):
