@@ -19,9 +19,9 @@ build-webengine:
     # Run this only when a new tag is pushed.
     # - tags
   script:
-    - cd ports/pyqt-webengine/ & make install-dev
-    - cd ports/pyqt-webengine/ & make build-webengine
-    - cd ports/pyqt-webengine/ & tar -zcvf dist.tar.gz dist/  # 136MB
+    - cd ports/pyqt-webengine/ && make install-dev
+    - cd ports/pyqt-webengine/ && make build-webengine
+    - cd ports/pyqt-webengine/ && tar -zcvf dist.tar.gz dist/  # 136MB
   artifacts:
     paths:
       - ports/pyqt-webengine/dist.tar.gz
