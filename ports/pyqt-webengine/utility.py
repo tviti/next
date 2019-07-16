@@ -1,6 +1,8 @@
 import logging
-from window import WINDOWS, get_window
+
 from buffers import BUFFERS
+from window import WINDOWS, get_window
+
 
 """
 Utility functions, for development.

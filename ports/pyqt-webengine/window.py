@@ -1,13 +1,12 @@
 import logging
 
-import buffers
-import core_interface
-import minibuffer
-
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt, pyqtSlot
 from PyQt5.QtGui import QKeyEvent, QKeySequence
 from PyQt5.QtWidgets import QApplication, QShortcut, QVBoxLayout, QWidget
 
+import buffers
+import core_interface
+import minibuffer
 
 #: A dictionary of current windows mapping an identifier (str) to a window (Window).
 WINDOWS = {}

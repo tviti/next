@@ -7,7 +7,7 @@ run:
 
 isort:
 	# sort imports, one per line.
-	isort -sl
+	isort -y --atomic
 
 qa:
 	flake8 *.py
