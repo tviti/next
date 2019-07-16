@@ -1,0 +1,27 @@
+image: debian:10-slim
+
+# before_script:
+  # - apt-get update -qy
+  # - apt-get install -y git-core
+
+stages:
+  - test
+  - build
+
+test:
+  stage: test
+  script:
+    - echo "todo"
+
+build-webengine:
+  stage: build
+  # only:
+    # Run this only when a new tag is pushed.
+    # - tags
+  script:
+    - cd ports/pyqt-webengine/ & make install-dev
+    - cd ports/pyqt-webengine/ & make build-webengine
+    - cd ports/pyqt-webengine/ & tar -zcvf dist.tar.gz dist/  # 136MB
+  artifacts:
+    paths:
+      - ports/pyqt-webengine/dist.tar.gz
