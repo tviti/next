@@ -1,8 +1,8 @@
-image: debian:10-slim
+image: python:3.7-slim-buster
 
-# before_script:
-  # - apt-get update -qy
-  # - apt-get install -y git-core
+before_script:
+  - apt-get update -qy
+  - apt-get install -y make
 
 stages:
   - test
