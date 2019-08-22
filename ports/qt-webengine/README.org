@@ -1,0 +1,8 @@
+* Next Qt WebEngine Port
+This folder contains the source code for the Qt WebEngine front-end for the
+Next browser.
+
+* Development
+** Compilation
++ =qmake next-qt-webengine.pro=
++ =make=
