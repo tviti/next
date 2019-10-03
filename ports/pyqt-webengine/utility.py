@@ -2,15 +2,12 @@ import logging
 import re
 from sys import platform
 
-from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
+from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt, QPoint
 from PyQt5.QtGui import QKeyEvent, QKeySequence, QMouseEvent
 import window
-from core_interface import push_input_event
-
 from PyQt5.QtWidgets import QWidget
 
-import window
 from core_interface import push_input_event, request_resource
 
 # Used to detect if a keypress was just a modifier
@@ -49,6 +46,11 @@ MODIFIERS = {}
 # Used for constructing a bitmasked modifier
 REVERSE_MODIFIERS = {}
 
+# TODO: OK to leave as global vars (sans container)?
+INPUT_IS_NOT_POINTER = -1.0
+INPUT_IS_NOT_PRINTABLE = -1.0
+INPUT_IS_PRINTABLE = -2.0
+
 if platform == "linux" or platform == "linux2":
     tmp = {Qt.ShiftModifier: "s",
            Qt.ControlModifier: "C",
@@ -82,6 +84,17 @@ elif platform == "win32" or platform == "win64":
     REVERSE_MODIFIERS.update(tmp)
 
 
+def create_key_code(event):
+    """
+    QtKeyEvent.key() doesn't distinguish between upper and lower, so this is a
+    dirty hack to encode the case too (since it looks like gtk does?).
+    """
+    if(len(event.text()) == 1 and not event.key() in SPECIAL_KEYS):
+        return ord(event.text())
+
+    return event.key()
+
+
 def create_modifiers_list(event_modifiers):
     modifiers = []
     for key, value in MODIFIERS.items():
@@ -102,6 +115,9 @@ def create_key_string(event):
                 text = chr(event.key()).lower()
             except Exception:
                 text = QKeySequence(event.key()).toString().lower()
+
+        if event.modifiers() == Qt.ShiftModifier:
+            text = text.upper()
 
     return text
 
@@ -143,8 +159,12 @@ def generate_input_event(window_id, key_code, modifiers, low_level_data, x, y):
 
     if x == -1:
         # Key event.
-        if (low_level_data not in SPECIAL_KEYS):
-            text = chr(low_level_data)
+        if (key_code not in SPECIAL_KEYS or key_code == Qt.Key_Space):
+            text = chr(key_code)
+
+        # TODO: Forwarding ALL key-codes in this way will occassionally break
+        # text = chr(key_code)
+
         event = QKeyEvent(QEvent.KeyPress, key_code, modifiers_flag,
                           10000, 10000, 10000, text=text)
         receiver = window.get_window(window_id).buffer.focusProxy()
@@ -169,12 +189,14 @@ class EventFilter(QWidget):
         self.sender.installEventFilter(self)
 
     def eventFilter(self, obj, event):
-        if (event.type() == QEvent.KeyPress and not
-            is_modifier(event.key()) and
-                event.nativeScanCode() != 10000):
+        if (event.type() == QEvent.KeyPress and
+            not is_modifier(event.key()) and
+            event.nativeScanCode() != 10000):
+
             modifiers = create_modifiers_list(event.modifiers())
             key_string = create_key_string(event)
-            key_code = event.key()
+            # key_code = event.key()
+            key_code = create_key_code(event)
             low_level_data = 0
             try:
                 low_level_data = ord(key_string)
@@ -182,17 +204,22 @@ class EventFilter(QWidget):
                 low_level_data = key_code
             except ValueError:
                 low_level_data = key_code
+
+            txt_type = INPUT_IS_NOT_PRINTABLE
+            if len(event.text()) >= 1:
+               txt_type = INPUT_IS_PRINTABLE
+
             logging.info("send code: {} string: {} modifiers: {} low_level_data: {}".format(
                 key_code, key_string, modifiers, low_level_data))
             push_input_event(key_code,
                              key_string,
                              modifiers,
-                             -1.0, -1.0, low_level_data,
+                             INPUT_IS_NOT_POINTER, txt_type, low_level_data,
                              window.active())
             return True
 
-        elif event.type() == QEvent.MouseButtonPress and \
-             (hasattr(event, "is_generated") and not event.is_generated):
+        elif (event.type() == QEvent.MouseButtonPress and
+              (hasattr(event, "is_generated") and not event.is_generated)):
             modifiers = create_modifiers_list(event.modifiers())
             low_level_data = 0
             button = "button" + str(event.button())
