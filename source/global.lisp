@@ -47,7 +47,8 @@ is 4005, default set to 4006 in Next to avoid collisions).")
 (defparameter +core-interface+ +core-name+)
 
 @export
-(defparameter +dbus-launch-command+ '("dbus-launch")
+(defparameter +dbus-launch-command+ '("dbus-launch"
+				      "--config-file=/Users/taylor/common-lisp/my-next-port/dbus/session.conf")
   "The command to start dbus, if necessary.
 The first string is the command, the other strings are the arguments.")
 
