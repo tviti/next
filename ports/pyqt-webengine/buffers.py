@@ -52,16 +52,24 @@ class Buffer(QWebEngineView):
         self.js_ready_signal = page.loadFinished
         self.js_ready_signal.connect(self.set_js_ready)
 
-        self.js_wait_signal = page.urlChanged
+        self.js_wait_signal = page.loadStarted
         self.js_wait_signal.connect(self.set_js_wait)
 
         self.js_ready_signal.connect(self.run_js_queue)
 
-    def set_js_ready(self):
+        self.url_old_nofrag = self.url()
+        self.url_old_nofrag.setFragment(None)
+
+    def set_js_ready(self, ok=True):
         self.js_ready = True
 
     def set_js_wait(self):
-        self.js_ready = False
+        # Workaround for QTBUG-65223 (if an anchor/fragment url was selected, a
+        # loadStarted is emitted, but loadFinished is not).
+        url = self.url()
+        url.setFragment(None)
+        if(self.url_old_nofrag.url() == url.url()):
+            self.js_ready = False
 
     def did_commit_navigation(self, url):
         """Invoked whenever the webview starts navigation.
@@ -75,9 +83,10 @@ class Buffer(QWebEngineView):
         load was successful or an error occurred.
         """
         url = self.url().url()
+        self.url_old = self.url()
         core_interface.buffer_did_finish_navigation(self.identifier, str(url))
 
-    def run_js_queue(self, ok):
+    def run_js_queue(self, ok=True):
         """Run ALL queued JavaScript calls."""
         for script in self.script_queue:
             self.page().runJavaScript(
