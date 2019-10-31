@@ -37,6 +37,13 @@ end-user allowing for infinite customization.
   - [[#styles][Styles]]
   - [[#hooks][Hooks]]
   - [[#startup-behaviour][Startup behaviour]]
+<<<<<<< HEAD
+=======
+  - [[#run-next-in-a-security-sandbox][Run Next in a security sandbox]]
+- [[#troubleshooting][Troubleshooting]]
+  - [[#stumpwm-mouse-scroll][StumpWM mouse scroll]]
+  - [[#d-bus-requirement][D-Bus requirement]]
+>>>>>>> master
 
 * Basics
 ** Navigation
@@ -348,11 +355,20 @@ files, and you can select one with the usual fuzzy completion. You can
 go one directory  up with =M-Left= or =C-l=, and  enter the directory
 at point with =M-Right= or =C-j=.
 
-Next  will open  the  file  with the  system's  default program  using
-=xdg-open=.  See  the  command  help  for  further  details,  and  the
-customization section to override the default behavior.
+Next will open itself directories and supported media types (new in
+Next 1.3.5), otherwise it will try to open the file with the system's
+default using =xdg-open=.  See the command help for further details,
+and the customization section to override the default behavior.
 
-__Note__: this feature is alpha and is meant to grow in Next 1.4 and onwards.
+/Note: this feature is alpha and is meant to grow in Next 1.4 and onwards./
+
+Next opening a directory:
+
+#+html: <img src="https://user-images.githubusercontent.com/3721004/66169709-9c3cbe00-e641-11e9-9aca-0d4af29d7977.png" align="center"/>
+
+Next opening a video. We can treat it like any other buffer:
+
+#+html: <img src="https://user-images.githubusercontent.com/3721004/66169802-f2116600-e641-11e9-9f5d-3af0724fc9fe.png" align="center" caption="Delgres - Mr President" title="Delgres - Mr President"/>
 
 ** Clearing the Echo Area
 In the area at the bottom of the screen where the minibuffer resides,
@@ -393,6 +409,11 @@ Use  the  =vcs-clone=  (alias  =git-clone=) command  to  clone  a  Git
 repository to  disk.  It asks  you for  the destination and  then runs
 asynchronously.
 
+<<<<<<< HEAD
+=======
+/This feature is meant to grow with Next 1.4 and onwards!/.
+
+>>>>>>> master
 By  default, the  command  looks into  the  following directories  for
 existing projects:
 
@@ -402,13 +423,24 @@ You can change the list like this:
 
 #+begin_src lisp
 (in-package :next)
+<<<<<<< HEAD
 (setf next/vcs:*vcs-projects-roots* '("~/my/directory"))
+=======
+(setf next/vcs:*vcs-projects-roots* '("~/src" "~/work" "~/my/directory"))
+>>>>>>> master
 #+end_src
 
 When there is one single choice, it doesn't ask for confirmation.
 
+<<<<<<< HEAD
 You can  set your username for  GitHub and other forges.  It helps the
 clone command  in doing the right  thing©, such as using  a git remote
+=======
+You can set your username for GitHub and other forges.  It helps the
+clone command in doing the right thing©. For example, if it sees that
+you are cloning a repository of yours (the user/organization name of
+the cloned repository equals your vcs-username), it will use a git remote
+>>>>>>> master
 url instead of https.
 
 Set =next/vcs:*vcs-username*= as a default username.
@@ -428,11 +460,15 @@ Change also the =*vcs-username-alist*=:
 
 Note that the forge name should be a domain, such as github.com.
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 ** Downloading videos
 
 The command =M-x download-video= will try to download the video at the
 current URL. For example, it works with any YouTube video.
+<<<<<<< HEAD
 
 It will  ask for  a target  repository and will  notify on  success or
 failure.
@@ -450,15 +486,40 @@ management.
 
 Quick example:
 
+=======
+
+It will  ask for  a target  repository and will  notify on  success or
+failure.
+
+It  uses by  default  the  program [[http://ytdl-org.github.io/youtube-dl/][youtube-dl]],  that  you must  have
+installed first.
+
+/Disclaimer: this feature is meant to grow with Next 1.4 and onwards!/
+
+To customize it, you can write a  new function that takes a URL and an
+optional   target   directory   as   parameter,   and   bind   it   to
+=next/video:*download-function*=.  In  doing so,  you can rely  on the
+=next/video:download= function,  that does error handling  and process
+management.
+
+Quick example:
+
+>>>>>>> master
 #+begin_src lisp
   (defun my-download-videos (url &optional target-dir)
      (next/video:download (list "path/to/program" url "-o" (or target-dir "~/Downloads"))))
 #+end_src
+<<<<<<< HEAD
 
 See also the variable =next/video:*preferred-download-directories*= (a
 list of directories). If it contains more than one entry, we are asked
 for the destination.
+=======
+>>>>>>> master
 
+See also the variable =next/video:*preferred-download-directories*= (a
+list of directories). If it contains more than one entry, we are asked
+for the destination.
 
 * Advanced Topics
 ** Execute Extended Command
@@ -513,17 +574,31 @@ declaration in order to modify Next-specific variables and functions:
 
 #+NAME: package
 #+BEGIN_SRC lisp
-(in-package :next)
+(in-package :next-user)
 #+END_SRC
 
 Following the package declaration, you can write or override any
 functions and variables.
+
+When you are done, you can load your changes while Next is running
+with the command =load-init-file=. Or load any file with =load-file=
+(=C-o=).
+
+Next will warn you its best about type mismatches (new in Next 1.3.5). You should be
+confident that "if it loads, it works"©.
+
 
 ** Keybinding
 Keys are defined with the ~define-key~ command.
 
 #+NAME: define key
 #+BEGIN_SRC lisp
+<<<<<<< HEAD
+=======
+(defvar *my-keymap* (make-keymap)
+  "My keymap.")
+
+>>>>>>> master
 (define-key :keymap *my-keymap*
   "C-x o" #'example
   "SPACE" #'scroll-page-down)
@@ -562,6 +637,36 @@ scheme for all active modes in the current buffer.
 
 You can change the default binding scheme for any buffer by setting
 ~current-key-scheme~ to the appropriate value.
+<<<<<<< HEAD
+=======
+
+To create a keymap, use the ~make-keymap~ function.
+
+The user can define key bindings by creating a mode that is loaded before any
+other mode.  In your configuration file:
+
+#+begin_src lisp
+(defvar *my-keymap* (make-keymap)
+  "Keymap for `my-mode'.")
+
+(define-mode my-mode ()
+  "Dummy mode for the custom key bindings in `*my-keymap*'."
+  ((keymap-schemes :initform (list :emacs-map *my-keymap*
+                                   :vi-normal *my-keymap*))))
+
+(defun my-buffer-defaults (buffer)
+  (dolist (mode '(proxy-mode
+                  ;; ... More modes...
+                  ;; Put your mode last so that it has highest priority.
+                  my-mode))))
+
+(defun my-interface-defaults ()
+  (hooks:add-to-hook (hooks:object-hook *interface* 'buffer-make-hook)
+                     #'my-buffer-defaults))
+
+(hooks:add-to-hook '*after-init-hook* #'my-interface-defaults)
+#+end_src
+>>>>>>> master
 
 *** Override map
 
@@ -606,17 +711,28 @@ The default keybindings for ~vi-normal-mode~ are:
 "W": new-window
 #+END_SRC
 
+The minimal config that sets your Next in vi mode, is:
+
+```lisp
+; $HOME/.config/next/init.lisp
+(in-package :next)
+(add-to-default-list 'vi-normal-mode 'buffer 'default-modes)
+```
+
 ** Decide how to open files
 
-The commands  =open-file= and  =download-open-file= call  the function
-=open-file-function <filename>=. Its  default behaviour is to  open the file
-with the  system's default, using  =xdg-open=.  You can  override this
-behaviour   by    binding   another    function   to    the   variable
-=next:*open-file-function*=.
+The commands =open-file= and =download-open-file= call the function
+=next/file-manager-mode:open-file-function <filename>=.
 
-For example:
+You can override this behaviour by binding another function to the
+variable =next:*open-file-function*=, in which you can fallback to the
+default function.
+
+For example, below we open directories with =emacsclient= and some music ad
+videos with =mpv=:
 
 #+begin_src lisp
+<<<<<<< HEAD
 (defun my-open-videos (filename)
   "Open videos with mpv."
   (handler-case (let ((extension (pathname-type filename)))
@@ -628,6 +744,27 @@ For example:
     (error (c) (log:error "Error opening ~a: ~a" filename c))))
 
 (setf next/file-manager-mode:*open-file-function* #'my-open-videos)
+=======
+  (defun my-open-files (filename)
+    "Open music and videos with mpv, open directories with emacsclient."
+    (let ((args)
+          (extension (pathname-type filename)))
+      (cond
+        ((uiop:directory-pathname-p filename)
+         (log:info "Opening ~a with emacsclient." filename)
+         (setf args (list "emacsclient" filename)))
+
+        ((member extension '("flv" "mkv" "mp4") :test #'string-equal)
+         (setf args (list "mpv" filename))))
+
+      (handler-case (if args
+                        (uiop:launch-program args)
+                        ;; fallback to Next's default.
+                        (next/file-manager-mode:open-file-function filename))
+        (error (c) (log:error "Error opening ~a: ~a" filename c)))))
+
+  (setf next/file-manager-mode:*open-file-function* #'my-open-files)
+>>>>>>> master
 #+end_src
 
 ** Loading Files
@@ -874,3 +1011,25 @@ to Next as command line arguments.
 You can assign you own function to ~startup-function~ to change the behaviour of
 Next on startup, such as which URL it should display, if it should restore the
 previous session or not, etc.
+<<<<<<< HEAD
+=======
+** Run Next in a security sandbox
+For improved security while you browse the internet, you can run Next
+with [[https://firejail.wordpress.com/][Firejail]] on GNU/Linux.
+
+Run it like this:
+
+: firejail --ignore=nodbus next-gtk-webkit
+
+* Troubleshooting
+** StumpWM mouse scroll
+
+If the mouse scroll does not work for you, see the [[https://github.com/stumpwm/stumpwm/wiki/FAQ#my-mouse-wheel-doesnt-work-with-gtk3-applications-add-the-following-to][StumpWM FAQ]] for a
+fix.
+
+** D-Bus requirement
+
+Next needs a D-Bus session bus to run. In most cases, it should
+already be running. If Next does not start up, it is very likely that
+D-Bus is not running for your user.
+>>>>>>> master

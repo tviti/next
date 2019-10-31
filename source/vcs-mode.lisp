@@ -30,17 +30,29 @@ changes, browse files in a text editor, use hooks...
 
 (in-package :next/vcs)
 
+<<<<<<< HEAD
+=======
+(declaim (type (or null list-of-strings) *vcs-projects-roots*))
+>>>>>>> master
 (defparameter *vcs-projects-roots* '("~/projects" "~/src" "~/work" "~/common-lisp" "~/quicklisp/local-projects")
   "A list of directories to look for VCS repositories into.")
 ;; Possible improvement: specify the depth to look for projects alongside the directory.
 ;; See magit-list-repositories.
 
+<<<<<<< HEAD
+=======
+(declaim (type (or null alist-of-strings) *vcs-usernames-alist*))
+>>>>>>> master
 (defvar *vcs-usernames-alist* '(("github.com" . "")
                                 ("gitlab.com" . "")
                                 ("bitbucket.org" . ""))
   "Your VCS usernames on different forges. Helps some commands to do things right, such as cloning with a git remote url instead of https.
 The forge name should be a domain, such as github.com.")
 
+<<<<<<< HEAD
+=======
+(declaim (type (or null string) *vcs-username*))
+>>>>>>> master
 (defvar *vcs-username* ""
   "Default username to use for forges if none is found in `*vcs-usernames-alist*'.")
 
@@ -167,8 +179,13 @@ Ask for which directory to clone to, expect if there is one single choice."
        (echo "Could not find the project name."))
       (existing-repo
        (echo "This repository exists in ~a" existing-repo))
+<<<<<<< HEAD
       ((= 1 (length next/vcs:*vcs-projects-roots*))
        (setf target-dir (first next/vcs:*vcs-projects-roots*))
+=======
+      ((= 1 (length next/vcs::*vcs-projects-roots*))
+       (setf target-dir (first next/vcs::*vcs-projects-roots*))
+>>>>>>> master
        (next/vcs::clone project-name root-name target-dir clone-uri))
       (t (with-result (target-dir (read-from-minibuffer
                                    (make-instance 'minibuffer

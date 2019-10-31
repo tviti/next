@@ -142,10 +142,22 @@ Error out if no platform port can be started."
   (or (getf *options* :init-file)
       (xdg-config-home filename)))
 
+<<<<<<< HEAD
 (defun load-lisp-file (file &key interactive)
   "Load the provided lisp file.
 If FILE is \"-\", read from the standard input.
 If INTERACTIVE is non-nil, allow the debugger on errors."
+=======
+(defparameter *load-init-error-message* "Error: we could not load the init file")
+(defparameter *load-init-type-error-message* (str:concat *load-init-error-message* " because of a type error."))
+
+(defun load-lisp-file (file &key interactive)
+  "Load the provided lisp file.
+If FILE is \"-\", read from the standard input.
+If INTERACTIVE is t, allow the debugger on errors. If :running, show
+an error but don't quit the lisp process. If nil, quit lisp (specially
+useful when Next starts up)."
+>>>>>>> master
   (unless (str:emptyp (namestring file))
     (handler-case (if (string= (pathname-name file) "-")
                       (progn
@@ -158,6 +170,7 @@ If INTERACTIVE is non-nil, allow the debugger on errors."
                         (load file)))
       (error (c)
         ;; TODO: Handle warning from `echo'.
+<<<<<<< HEAD
         (let ((message "Error: could not load the init file"))
           ;; (echo-warning message)
           (if interactive
@@ -173,12 +186,39 @@ If INTERACTIVE is non-nil, allow the debugger on errors."
                                  (make-instance 'minibuffer
                                                 :input-prompt "Load file:")))
     (load-lisp-file file-name-input :interactive interactive)))
+=======
+        (let ((message (if (subtypep (type-of c) 'type-error)
+                           *load-init-type-error-message*
+                           *load-init-error-message*)))
+          (cond
+            ((equal interactive :running)
+             (echo-safe "Could not load the init file: ~a" c)
+             (notify "We could not load the init file."))
+            ((null interactive)
+             (format *error-output* "~%~a~&~a~&" (cl-ansi-text:red message) c)
+             (uiop:quit 1))
+            (t
+             (error (format nil "~a:~&~s" message c)))))))))
+
+(define-command load-file (&key interactive)
+  "Load the prompted Lisp file.
+If INTERACTIVE is t, allow the debugger on errors. If :running, show an error but don't quit the lisp process.
+"
+  (with-result (file-name-input (read-from-minibuffer
+                                 (make-instance 'minibuffer
+                                                :input-prompt "Load file:")))
+    (load-lisp-file file-name-input :interactive :running)))
+>>>>>>> master
 
 (define-command load-init-file (&key (init-file (init-file-path))
                                      interactive)
   "Load or reload the init file.
 If INTERACTIVE is non-nil, allow the debugger on errors."
+<<<<<<< HEAD
   (load-lisp-file init-file :interactive interactive))
+=======
+  (load-lisp-file init-file :interactive :running))
+>>>>>>> master
 
 (defun default-startup (&optional urls)
   "Make a window and load URLS in new buffers.

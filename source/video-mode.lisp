@@ -32,12 +32,24 @@ notifications, choose videos, etc.
 
 (in-package :next/video)
 
+<<<<<<< HEAD
 (defparameter *download-program* "youtube-dl"
   "The external program to download videos with. Defaults to youtube-dl.")
 
 (defparameter *download-args* nil
   "Default arguments for the download command. See also `download-arguments' which adds more.")
 
+=======
+(declaim (type (or null string) *download-program*))
+(defparameter *download-program* "youtube-dl"
+  "The external program to download videos with. Defaults to youtube-dl.")
+
+(declaim (type (or null list-of-strings) *download-args*))
+(defparameter *download-args* nil
+  "Default arguments for the download command as a list of strings. See also `download-arguments' which adds more.")
+
+(declaim (type (or null trivial-types:proper-list) *preferred-download-directories*))
+>>>>>>> master
 (defparameter *preferred-download-directories* (list download-manager::*default-download-directory*)
   "List of favorite directories to save videos to. If it contains more than one entry, we are asked for the destination.")
 

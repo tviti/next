@@ -6,6 +6,7 @@
 ;; TODO: We need to separate the minibuffer from the echo area.  The
 ;; `show'/`hide' functions are not dealing well with `echo'/`echo-dismiss'.
 
+(declaim (type (list-of-characters) *word-separation-characters*))
 (defparameter *word-separation-characters* '(#\: #\/ #\- #\. #\Space #\ )
   "Characters delimiting words (space, colon, slash, dot, etc).")
 
@@ -22,8 +23,15 @@
         "SPACE" #'self-insert
         "C-f" #'cursor-forwards
         "M-f" #'cursor-forwards-word
+<<<<<<< HEAD
         "C-b" #'cursor-backwards
         "M-b" #'cursor-backwards-word
+=======
+        "C-Right" #'cursor-forwards-word
+        "C-b" #'cursor-backwards
+        "M-b" #'cursor-backwards-word
+        "C-Left" #'cursor-backwards-word
+>>>>>>> master
         "M-d" #'delete-forwards-word
         "M-BACKSPACE" #'delete-backwards-word
         "Right" #'cursor-forwards
@@ -32,7 +40,13 @@
         "DELETE" #'delete-forwards
         "BACKSPACE" #'delete-backwards
         "C-a" #'cursor-beginning
+<<<<<<< HEAD
         "C-e" #'cursor-end
+=======
+        "Home" #'cursor-beginning
+        "C-e" #'cursor-end
+        "End" #'cursor-end
+>>>>>>> master
         "C-k" #'kill-line
         "RETURN" #'return-input
         "C-RETURN" #'return-immediate
@@ -92,10 +106,19 @@ This should not rely on the minibuffer's content.")
                              :documentation "If non-nil, allow input matching no
 candidates.")
    ;; TODO: Move input-* slots to a separate text class?
+<<<<<<< HEAD
    (input-prompt :initarg :input-prompt :accessor input-prompt :initform "Input:")
    (input-buffer :initarg :input-buffer :accessor input-buffer :initform ""
                  :documentation "Initial text to place at the prompt, ready to edit.")
    (input-cursor-position :accessor input-cursor-position :initform 0)
+=======
+   (input-prompt :initarg :input-prompt :accessor input-prompt :initform "Input:"
+                 :type string)
+   (input-buffer :initarg :input-buffer :accessor input-buffer :initform ""
+                 :type string
+                 :documentation "Initial text to place at the prompt, ready to edit.")
+   (input-cursor-position :accessor input-cursor-position :initform 0 :type integer)
+>>>>>>> master
    (invisible-input-p :initarg :invisible-input-p :accessor invisible-input-p
                       :initform nil
                       :documentation "If non-nil, input is replaced by
@@ -114,7 +137,11 @@ candidates.")
    (marked-completions :accessor marked-completions :initform nil)
    (completion-head :accessor completion-head :initform 0)
    (completion-cursor :accessor completion-cursor :initform 0) ; TODO: Rename to completion-index?
+<<<<<<< HEAD
    (content :initform ""
+=======
+   (content :initform "" :type string
+>>>>>>> master
             :documentation "The HTML content of the minibuffer.")
    (max-lines :initarg :max-lines
               :accessor max-lines
@@ -603,6 +630,7 @@ The new webview HTML content it set as the MINIBUFFER's `content'."
                        (ps:ps
                          (setf (ps:chain document (get-element-by-id "prompt") |innerHTML|)
                                (ps:lisp
+<<<<<<< HEAD
                                 (format nil "~a~a:"
                                         (input-prompt minibuffer)
                                         (when completions
@@ -612,6 +640,18 @@ The new webview HTML content it set as the MINIBUFFER's `content'."
                                                       (length completions))
                                               (format nil "[~a]"
                                                       (length completions)))))))
+=======
+                                (format nil "~a~a"
+                                        (input-prompt minibuffer)
+                                        (if completions
+                                            (if marked-completions
+                                                (format nil "[~a/~a]:"
+                                                        (length marked-completions)
+                                                        (length completions))
+                                                (format nil "[~a]:"
+                                                        (length completions)))
+                                            ""))))
+>>>>>>> master
                          (setf (ps:chain document (get-element-by-id "input-buffer") |innerHTML|)
                                (ps:lisp input-text))
                          (setf (ps:chain document (get-element-by-id "completions") |innerHTML|)
