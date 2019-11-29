@@ -189,8 +189,8 @@ useful when Next starts up)."
 If INTERACTIVE is t, allow the debugger on errors. If :running, show an error but don't quit the lisp process.
 "
   (with-result (file-name-input (read-from-minibuffer
-                                 (make-instance 'minibuffer
-                                                :input-prompt "Load file:")))
+                                 (make-minibuffer
+                                  :input-prompt "Load file:")))
     (load-lisp-file file-name-input :interactive :running)))
 
 (define-command load-init-file (&key (init-file (init-file-path))
@@ -235,10 +235,10 @@ Finally, run the `*after-init-hook*'."
     (when *interface*
       (kill-interface *interface*)
       ;; It's important to set it to nil or else if we re-run this function,
-      ;; (make-instance 'remote-interface) will be run while an existing
+      ;; (make-instance *remote-interface-class*) will be run while an existing
       ;; *interface* is still floating around.
       (setf *interface* nil))
-    (setf *interface* (make-instance 'remote-interface
+    (setf *interface* (make-instance *remote-interface-class*
                                      :non-interactive non-interactive
                                      :startup-timestamp startup-timestamp))
     ;; Start the port after the interface so that we don't overwrite the log when

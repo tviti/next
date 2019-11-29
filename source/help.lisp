@@ -33,13 +33,14 @@
 (define-command variable-inspect ()
   "Inspect a variable and show it in a help buffer."
   (with-result (input (read-from-minibuffer
-                       (make-instance 'minibuffer
-                                      :completion-function #'variable-completion-filter
-                                      :input-prompt "Inspect variable:")))
-    (let* ((help-buffer (make-buffer
-                         :title (str:concat "*Help-" (symbol-name input) "*")
-                         :modes (cons 'help-mode
-                                      (get-default 'buffer 'default-modes))))
+                       (make-minibuffer
+                        :completion-function #'variable-completion-filter
+                        :input-prompt "Inspect variable:")))
+    (let* ((help-buffer (help-mode :activate t
+                                   :buffer (make-buffer
+                                            :title (str:concat "*Help-"
+                                                               (symbol-name input)
+                                                               "*"))))
            (help-contents (cl-markup:markup
                            (:h1 (symbol-name input))
                            (:p (documentation input 'variable))
@@ -48,19 +49,20 @@
            (insert-help (ps:ps (setf (ps:@ document Body |innerHTML|)
                                      (ps:lisp help-contents)))))
       (rpc-buffer-evaluate-javascript help-buffer insert-help)
-   (set-current-buffer help-buffer))))
+      (set-current-buffer help-buffer))))
 
 ;; TODO: Have both "function-inspect" and "command-inspect"?
 (define-command command-inspect ()
   "Inspect a function and show it in a help buffer."
   (with-result (input (read-from-minibuffer
-                       (make-instance 'minibuffer
-                                      :input-prompt "Inspect command:"
-                                      :completion-function #'function-completion-filter)))
-    (let* ((help-buffer (make-buffer
-                         :title (str:concat "*Help-" (symbol-name (sym input)) "*")
-                         :modes (cons 'help-mode
-                                      (get-default 'buffer 'default-modes))))
+                       (make-minibuffer
+                        :input-prompt "Inspect command:"
+                        :completion-function #'function-completion-filter)))
+    (let* ((help-buffer (help-mode :activate t
+                                   :buffer (make-buffer
+                                            :title (str:concat "*Help-"
+                                                               (symbol-name (sym input))
+                                                               "*"))))
            (help-contents (cl-markup:markup
                            (:h1 (symbol-name (sym input)))
                            (:h2 "Documentation")
@@ -85,12 +87,12 @@ This does not use an implicit PROGN to allow evaluating top-level expressions."
 (define-command command-evaluate ()
   "Evaluate a form."
   (with-result (input (read-from-minibuffer
-                       (make-instance 'minibuffer
-                                      :input-prompt "Evaluate Lisp:")))
-    (let* ((result-buffer (make-buffer
-                           :title "*List Evaluation*" ; TODO: Reuse buffer / create REPL mode.
-                           :modes (cons 'help-mode
-                                        (get-default 'buffer 'default-modes))))
+                       (make-minibuffer
+                        :input-prompt "Evaluate Lisp:")))
+    (let* ((result-buffer (help-mode :activate t
+                                     :buffer (make-buffer
+                                              ;; TODO: Reuse buffer / create REPL mode.
+                                              :title "*List Evaluation*")))
            (results (handler-case
                         (mapcar #'write-to-string (evaluate input))
                       (error (c) (format nil "~a" c))))
@@ -104,14 +106,11 @@ This does not use an implicit PROGN to allow evaluating top-level expressions."
            (insert-results (ps:ps (setf (ps:@ document Body |innerHTML|)
                                         (ps:lisp result-contents)))))
       (rpc-buffer-evaluate-javascript result-buffer insert-results)
-   (set-current-buffer result-buffer))))
+      (set-current-buffer result-buffer))))
 
 (define-command help ()
   "Print some help."
-  (let* ((help-buffer (make-buffer
-                       :title "*Help*"
-                       :modes (cons 'help-mode
-                                    (get-default 'buffer 'default-modes))))
+  (let* ((help-buffer (help-mode :activate t :buffer (make-buffer :title "*Help*")))
          (help-contents
            (cl-markup:markup
             (:h1 "Getting started")
@@ -202,10 +201,7 @@ The version number is stored in the clipboard."
                            (string= "*Messages*" (title b)))
                          (alexandria:hash-table-values (buffers *interface*)))))
     (unless buffer
-      (setf buffer (make-buffer
-                    :title "*Messages*"
-                    :modes (cons 'help-mode
-                                 (get-default 'buffer 'default-modes)))))
+      (setf buffer (help-mode :activate t :buffer (make-buffer :title "*Messages*"))))
     (let* ((content
              (apply #'cl-markup:markup*
                     '(:h1 "Messages")

@@ -58,6 +58,8 @@ Regardless of the hook, the command returns the last expression of BODY."
                         %%command-list)
          (push (make-instance 'command :sym ',name :pkg *package*) %%command-list))
        @export
+       ;; We use defun to define the command instead of storing a lambda because we want
+       ;; to be able to call the foo command from Lisp with (FOO ...).
        (defun ,name ,arglist
          ,documentation
          (handler-case
@@ -175,7 +177,7 @@ Otherwise list all commands."
                        (> (access-time c1) (access-time c2))))))
 
 (defmethod command-function ((command command))
-  "Return the function associate to COMMAND.
+  "Return the function associated to COMMAND.
 This function can be `funcall'ed."
   (symbol-function (find-symbol
                     (string (sym command))
@@ -189,8 +191,8 @@ This function can be `funcall'ed."
 (define-command execute-command ()
   "Execute a command by name."
   (with-result (command (read-from-minibuffer
-                         (make-instance 'minibuffer
-                                        :input-prompt "Execute command:"
-                                        :completion-function 'command-completion-filter)))
+                         (make-minibuffer
+                          :input-prompt "Execute command:"
+                          :completion-function 'command-completion-filter)))
     (setf (access-time command) (get-internal-real-time))
     (run command)))

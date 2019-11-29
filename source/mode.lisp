@@ -17,30 +17,38 @@ Two arguments have a special meaning beside the slot value of the mode:
   This should always be specified in Lisp code since the active buffer might, if
   any, might not be the right buffer.
 - :ACTIVATE is used to choose whether to enable or disable the mode.
-If :ACTIVATE is omitted, the mode is toggled."
-  `(progn
-     @export
-     @export-accessors
-     (defclass ,name ,(unless (eq (first direct-superclasses) t)
-                        (append direct-superclasses '(root-mode)))
-       ,direct-slots
-       (:documentation ,docstring))
-     ;; TODO: Can we delete the last mode?  What does it mean to have no mode?
-     ;; Should probably always have root-mode.
-     ,(unless (eq name 'root-mode)
-        `(define-command ,name (&rest args &key (buffer (current-buffer))
-                                      (activate t explicit?)
-                                      &allow-other-keys)
-           ,docstring
-           (unless (typep buffer 'buffer)
-             (error ,(format nil "Mode command ~a called on empty buffer" name)))
-           (let ((existing-instance (find-mode buffer ',name)))
+If :ACTIVATE is omitted, the mode is toggled.
+The buffer is returned so that mode activation can be chained."
+  (let ((class-var (intern (format nil "*~a-CLASS*" name))))
+    `(progn
+       @export
+       @export-accessors
+       (defclass ,name ,(unless (eq (first direct-superclasses) t)
+                          (append direct-superclasses '(root-mode)))
+         ,direct-slots
+         (:documentation ,docstring))
+       ;; Class symbol customization:
+       (define-class-type ,name)
+       (declaim (type (,(intern (format nil "~a-TYPE" name))) ,class-var))
+       @export
+       (defparameter ,class-var ',name
+         ,(format nil "Default class to use for ~a." name))
+       ;; TODO: Can we delete the last mode?  What does it mean to have no mode?
+       ;; Should probably always have root-mode.
+       ,(unless (eq name 'root-mode)
+          `(define-command ,name (&rest args &key (buffer (current-buffer))
+                                        (activate t explicit?)
+                                        &allow-other-keys)
+             ,docstring
+             (unless (typep buffer 'buffer)
+               (error ,(format nil "Mode command ~a called on empty buffer" name)))
+             (let ((existing-instance (find-mode buffer ',name)))
                (unless explicit?
                  (setf activate (not existing-instance)))
                (if activate
                    (unless existing-instance
                      ;; TODO: Should we move mode to the front when it already exists?
-                     (let ((new-mode (apply #'make-instance ',name
+                     (let ((new-mode (apply #'make-instance ,class-var
                                             :buffer buffer
                                             args)))
                        (when (constructor new-mode)
@@ -54,13 +62,14 @@ If :ACTIVATE is omitted, the mode is toggled."
                        (funcall (destructor existing-instance) existing-instance))
                      (setf (modes buffer) (delete existing-instance
                                                   (modes buffer)))
-                     (log:debug "~a disabled." ',name))))))))
+                     (log:debug "~a disabled." ',name))))
+             buffer)))))
 
 (define-mode root-mode (t)
   "The root of all modes."
   ((buffer :accessor buffer :initarg :buffer)
    (activate :accessor activate :initarg :activate) ; TODO: This can be used in the future to temporarily turn off modes without destroying the object.
-   (constructor :accessor constructor :initarg :constructor :type :function :initform nil
+   (constructor :accessor constructor :initarg :constructor :type :function :initform nil ; TODO: Make constructor / destructor methods?  Then we can use initialize-instance, etc.
                 :documentation
                 "A lambda function which initializes the mode upon activation.
 It takes the mode as argument.")
@@ -71,11 +80,13 @@ It takes the mode as argument.")
    (enable-hook :accessor enable-hook :initarg :enable-hook :type :list
                 :initform '()
                 :documentation "This hook is run when enabling the mode.
-It takes the mode as argument.")
+It takes the mode as argument
+It is run before the destructor.")
    (disable-hook :accessor disable-hook :initarg :disable-hook :type :list
                  :initform '()
                  :documentation "This hook is run when disabling the mode.
-It takes the mode as argument.")
+It takes the mode as argument.
+It is run before the destructor.")
    (keymap-schemes :accessor keymap-schemes :initarg :keymap-schemes :type :list
                    :initform
                    (let ((vi-map (make-keymap))
@@ -153,6 +164,20 @@ can be 'web-mode as well as 'next/web-mode:web-mode."
                                 ((guard c (not (null c))) (sym c))))))
     (when mode-full-symbol
       (find-if (lambda (m) (eq mode-full-symbol (class-name (class-of m))))
+               (modes buffer)))))
+
+@export
+(defmethod find-submode ((buffer buffer) mode-symbol)
+  "Like `find-mode' but return the first mode in BUFFER that is a sub-mode of MODE-SYMBOL.
+It may be MODE-SYMBOL itself."
+  (let ((mode-full-symbol (if (find-class mode-symbol nil)
+                              mode-symbol
+                              (match (mode-command mode-symbol)
+                                ((guard c (not (null c))) (sym c))))))
+    (when mode-full-symbol
+      (find-if (lambda (m)
+                 (closer-mop:subclassp (class-of m)
+                                       (find-class mode-full-symbol)))
                (modes buffer)))))
 
 @export
