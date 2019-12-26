@@ -597,7 +597,7 @@ other mode.  In your configuration file:
 
 (define-mode my-mode ()
   "Dummy mode for the custom key bindings in `*my-keymap*'."
-  ((keymap-schemes :initform (list :emacs-map *my-keymap*
+  ((keymap-schemes :initform (list :emacs *my-keymap*
                                    :vi-normal *my-keymap*))))
 
 (defclass my-buffer (buffer)
@@ -652,11 +652,11 @@ The default keybindings for ~vi-normal-mode~ are:
 
 The minimal config that sets your Next in vi mode, is:
 
-```lisp
+#+BEGIN_SRC lisp
 ; $HOME/.config/next/init.lisp
 (in-package :next)
 (add-to-default-list 'vi-normal-mode 'buffer 'default-modes)
-```
+#+END_SRC
 
 ** Start-up options
 
