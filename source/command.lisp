@@ -12,9 +12,9 @@
 ;; - Access-time: This is useful to sort command by the time they were last
 ;;   called.  The only way to do this is to persist the command instances.
 (defclass command ()
-  ((sym :accessor sym :initarg :sym :type :symbol :initform nil) ; TODO: Make constructor?
-   (pkg :accessor pkg :initarg :pkg :type :package :initform nil)
-   (access-time :accessor access-time :type :integer :initform 0
+  ((sym :accessor sym :initarg :sym :type symbol :initform nil) ; TODO: Make constructor?
+   (pkg :accessor pkg :initarg :pkg :type package :initform nil)
+   (access-time :accessor access-time :type integer :initform 0
                 :documentation "Last time this command was called from minibuffer.
 This can be used to order the commands.")))
 
@@ -50,9 +50,9 @@ Regardless of the hook, the command returns the last expression of BODY."
         (after-hook (intern (str:concat (symbol-name name) "-AFTER-HOOK"))))
     `(progn
        @export
-       (defparameter ,before-hook '())
+       (defparameter ,before-hook (next-hooks:make-hook-void))
        @export
-       (defparameter ,after-hook '())
+       (defparameter ,after-hook (next-hooks:make-hook-void))
        (unless (find-if (lambda (c) (and (eq (sym c) ',name)
                                          (eq (pkg c) *package*)))
                         %%command-list)
@@ -64,14 +64,14 @@ Regardless of the hook, the command returns the last expression of BODY."
          ,documentation
          (handler-case
              (progn
-               (hooks:run-hook ',before-hook)
+               (next-hooks:run-hook ,before-hook)
                (log:debug "Calling command ~a." ',name)
                ;; TODO: How can we print the arglist as well?
                ;; (log:debug "Calling command (~a ~a)." ',name (list ,@arglist))
                (prog1
                    (progn
                      ,@body)
-                 (hooks:run-hook ',after-hook)))
+                 (next-hooks:run-hook ,after-hook)))
            (next-condition (c)
              (format t "~s" c)))))))
 
@@ -192,7 +192,8 @@ This function can be `funcall'ed."
   "Execute a command by name."
   (with-result (command (read-from-minibuffer
                          (make-minibuffer
-                          :input-prompt "Execute command:"
-                          :completion-function 'command-completion-filter)))
+                          :input-prompt "Execute command"
+                          :completion-function 'command-completion-filter
+                          :show-completion-count nil)))
     (setf (access-time command) (get-internal-real-time))
     (run command)))

@@ -20,7 +20,6 @@ An entry is uniquely identified from its URL.  Not that we should not take the
 title into accound as it may vary from one load to the next."
   (string= (url bd1) (url bd2)))
 
-;; TODO: Use standard `print-object' instead?
 (defmethod object-string ((buffer buffer))
   (format nil "~a  ~a" (url buffer) (title buffer)))
 
@@ -40,8 +39,7 @@ MODES is a list of mode symbols."
     (when (and current-is-last-p
                (equal (first buffers)
                       active-buffer))
-      ;; TODO: No need for copy-seq since buffers is already a copy, isn't it?
-      (setf buffers (alexandria:rotate (copy-seq buffers) -1)))
+      (setf buffers (alexandria:rotate buffers -1)))
     (lambda (input)
       (fuzzy-match input buffers))))
 
@@ -49,7 +47,7 @@ MODES is a list of mode symbols."
   "Switch the active buffer in the current window."
   (with-result (buffer (read-from-minibuffer
                         (make-minibuffer
-                         :input-prompt "Switch to buffer:"
+                         :input-prompt "Switch to buffer"
                          ;; For commodity, the current buffer shouldn't be the first one on the list.
                          :completion-function (buffer-completion-filter :current-is-last-p t))))
     (set-current-buffer buffer)))
@@ -68,10 +66,20 @@ MODES is a list of mode symbols."
   "Delete the buffer(s) via minibuffer input."
   (with-result (buffers (read-from-minibuffer
                          (make-minibuffer
-                          :input-prompt "Delete buffer(s):"
+                          :input-prompt "Delete buffer(s)"
                           :multi-selection-p t
                           :completion-function (buffer-completion-filter))))
     (mapcar #'rpc-buffer-delete buffers)))
+
+(defun delete-buffers ()
+  "Delete all buffers."
+  (mapcar #'rpc-buffer-delete (alexandria:hash-table-values (buffers *interface*))))
+
+(define-command delete-all-buffers ()
+  "Delete all buffers, with confirmation."
+  (let ((count (hash-table-count (buffers *interface*))))
+    (with-confirm ("Are you sure to delete ~a buffer~p?" count count)
+      (delete-buffers))))
 
 (define-command delete-current-buffer (&optional (buffer (current-buffer)))
   "Delete the currently active buffer, and make the next buffer the
@@ -91,10 +99,16 @@ buffer to the start page."
                             raw-url-p)
   "Load INPUT-URL in BUFFER.
 URL is first transformed by `parse-url', then by BUFFER's `load-hook'."
-  (let ((url (if raw-url-p
-                 input-url
-                 (parse-url input-url))))
-    (setf url (run-composed-hook (load-hook buffer) url))
+  (let* ((url (if raw-url-p
+                  input-url
+                  (parse-url input-url))))
+    (handler-case
+        (progn
+          (let ((new-url (next-hooks:run-hook (load-hook buffer) url)))
+            (check-type new-url string)
+            (setf url new-url)))
+      (error (c)
+        (log:error "In `load-hook': ~a" c)))
     (setf (url buffer) url)
     (rpc-buffer-load buffer url)))
 
@@ -114,7 +128,7 @@ URL is first transformed by `parse-url', then by BUFFER's `load-hook'."
       (ring:insert history (url (current-buffer))))
     (with-result (url (read-from-minibuffer
                        (make-minibuffer
-                        :input-prompt (format nil "Open URL in ~A buffer:"
+                        :input-prompt (format nil "Open URL in ~A buffer"
                                               (if new-buffer-p
                                                   "new"
                                                   "current"))
@@ -139,7 +153,7 @@ URL is first transformed by `parse-url', then by BUFFER's `load-hook'."
   "Reload queried buffer(s)."
   (with-result (buffers (read-from-minibuffer
                          (make-minibuffer
-                          :input-prompt "Reload buffer(s):"
+                          :input-prompt "Reload buffer(s)"
                           :multi-selection-p t
                           :completion-function (buffer-completion-filter))))
     (mapcar #'reload-current-buffer buffers)))
@@ -194,7 +208,7 @@ item in the list, jump to the first item."
   "Disable queried mode(s)."
   (with-result (modes (read-from-minibuffer
                        (make-minibuffer
-                        :input-prompt "Disable mode(s):"
+                        :input-prompt "Disable mode(s)"
                         :multi-selection-p t
                         :completion-function (active-mode-completion-filter buffers))))
     (dolist (buffer buffers)
@@ -206,7 +220,7 @@ item in the list, jump to the first item."
   "Disable queried mode(s) for select buffer(s)."
   (with-result (buffers (read-from-minibuffer
                          (make-minibuffer
-                          :input-prompt "Disable mode(s) for buffer(s):"
+                          :input-prompt "Disable mode(s) for buffer(s)"
                           :multi-selection-p t
                           :completion-function (buffer-completion-filter))))
     (disable-mode-for-current-buffer :buffers buffers)))
@@ -215,7 +229,7 @@ item in the list, jump to the first item."
   "Enable queried mode(s)."
   (with-result (modes (read-from-minibuffer
                        (make-minibuffer
-                        :input-prompt "Enable mode(s):"
+                        :input-prompt "Enable mode(s)"
                         :multi-selection-p t
                         :completion-function (inactive-mode-completion-filter buffers))))
     (dolist (buffer buffers)
@@ -227,7 +241,7 @@ item in the list, jump to the first item."
   "Enable queried mode(s) for select buffer(s)."
   (with-result (buffers (read-from-minibuffer
                          (make-minibuffer
-                          :input-prompt "Enable mode(s) for buffer(s):"
+                          :input-prompt "Enable mode(s) for buffer(s)"
                           :multi-selection-p t
                           :completion-function (buffer-completion-filter))))
     (enable-mode-for-current-buffer :buffers buffers)))

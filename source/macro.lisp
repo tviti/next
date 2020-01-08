@@ -41,6 +41,16 @@ ARGS must be key arguments."
                                        (ps:ps ,@script-body)
                                        :callback %callback))))
 
+(defmacro with-ps (&body body)
+  "Execute the parenscript body against the current buffer."
+  ;XXX: we might as well do it synchronously.
+  `(with-result (res
+                 (rpc-buffer-evaluate-javascript (current-buffer)
+                                                 (ps:ps ,@body)
+                                                 :callback (lambda (res)
+                                                             (format t res))))
+     (declare (ignorable res))))
+
 @export
 (defmacro with-result ((symbol async-form) &body body)
   "Call ASYNC-FORM.
@@ -51,7 +61,7 @@ Example:
 
   (with-result (url (read-from-minibuffer
                      (make-minibuffer
-                      :input-prompt \"Bookmark URL:\"))
+                      :input-prompt \"Bookmark URL\"))
     (bookmark-add url))"
   `(,(first async-form)
     ,@(rest async-form)
@@ -66,10 +76,36 @@ Example:
   (with-result* ((links-json (add-link-hints))
                  (selected-hint (read-from-minibuffer
                                  (make-minibuffer
-                                  :input-prompt \"Bookmark hint:\"
+                                  :input-prompt \"Bookmark hint\"
                                   :cleanup-function #'remove-link-hints))))
     ...)"
   (if (null bindings)
     `(progn ,@body)
     `(with-result ,(first bindings)
        (with-result* ,(rest bindings) ,@body))))
+
+(defparameter *yes-no-choices* '("yes" "no"))
+
+(defun yes-no-completion-filter ()
+  (lambda (input)
+    (fuzzy-match input *yes-no-choices*)))
+
+(defun confirmed-p (answer)
+  (string-equal answer "yes"))
+
+(defmacro with-confirm (prompt &body body)
+  "Ask the user for confirmation before executing BODY.
+PROMPT is a list fed to `format nil'.
+
+Example usage:
+
+  (with-confirm (\"Are you sure to kill ~a buffers?\" count)
+     (delete-buffers))
+"
+  `(with-result (answer (read-from-minibuffer
+                         (make-minibuffer
+                          :input-prompt (format nil ,@prompt)
+                          :completion-function (yes-no-completion-filter)
+                          :show-completion-count nil)))
+     (when (confirmed-p answer)
+       ,@body)))

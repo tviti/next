@@ -97,7 +97,7 @@ This should not rely on the minibuffer's content.")
                              :documentation "If non-nil, allow input matching no
 candidates.")
    ;; TODO: Move input-* slots to a separate text class?
-   (input-prompt :initarg :input-prompt :accessor input-prompt :initform "Input:"
+   (input-prompt :initarg :input-prompt :accessor input-prompt :initform "Input"
                  :type string)
    (input-buffer :initarg :input-buffer :accessor input-buffer :initform ""
                  :type string
@@ -119,6 +119,10 @@ If nil, no history is used.")
 candidates.")
    (completions :accessor completions :initform nil)
    (marked-completions :accessor marked-completions :initform nil)
+   (show-completion-count :accessor show-completion-count
+                            :initarg :show-completion-count :initform t
+                            :type boolean
+                            :documentation "Show the number of chosen candidates inside brackets. In the case of yes/no questions, there is no need for it.")
    (completion-head :accessor completion-head :initform 0)
    (completion-cursor :accessor completion-cursor :initform 0) ; TODO: Rename to completion-index?
    (content :initform "" :type string
@@ -190,6 +194,7 @@ You might want to configure the value on HiDPI screen.")
                           (input-prompt nil explicit-input-prompt)
                           (input-buffer nil explicit-input-buffer)
                           (invisible-input-p nil explicit-invisible-input-p)
+                          (show-completion-count t explicit-show-completion-count)
                           (history nil explicit-history)
                           (multi-selection-p nil explicit-multi-selection-p))
   "See the `minibuffer' class for the argument documentation."
@@ -223,6 +228,9 @@ You might want to configure the value on HiDPI screen.")
                 '())
            ,@(if explicit-invisible-input-p
                 `(:invisible-input-p ,invisible-input-p)
+                '())
+           ,@(if explicit-show-completion-count
+                `(:show-completion-count ,show-completion-count)
                 '())
            ,@(if explicit-history
                 `(:history ,history)
@@ -268,7 +276,7 @@ This runs a call"
                     (write (ps:lisp (content minibuffer)))))))
 
 (defmethod initialize-instance :after ((minibuffer minibuffer) &key)
-  (hooks:run-hook (hooks:object-hook *interface* 'minibuffer-make-hook) minibuffer)
+  (next-hooks:run-hook (minibuffer-make-hook *interface*) minibuffer)
   ;; We don't want to show the input in the candidate list when invisible.
   (unless (completion-function minibuffer)
     ;; If we have no completion function, then we have no candidates beside
@@ -665,16 +673,26 @@ The new webview HTML content it set as the MINIBUFFER's `content'."
                        (ps:ps
                          (setf (ps:chain document (get-element-by-id "prompt") |innerHTML|)
                                (ps:lisp
-                                (format nil "~a~a"
+                                (format nil "~a~a:"
                                         (input-prompt minibuffer)
-                                        (if completions
-                                            (if marked-completions
-                                                (format nil "[~a/~a]:"
-                                                        (length marked-completions)
-                                                        (length completions))
-                                                (format nil "[~a]:"
-                                                        (length completions)))
-                                            ""))))
+                                        (cond
+                                          ((not completions)
+                                           "")
+                                          ((not (show-completion-count minibuffer))
+                                           "")
+                                          (marked-completions
+                                           (format nil " [~a/~a]"
+                                                   (length marked-completions)
+                                                   (length completions)))
+                                          ((and (not marked-completions)
+                                                (multi-selection-p minibuffer))
+                                           (format nil " [0/~a]"
+                                                   (length completions)))
+                                          ((not marked-completions)
+                                           (format nil " [~a]"
+                                                   (length completions)))
+                                          (t
+                                           "[?]")))))
                          (setf (ps:chain document (get-element-by-id "input-buffer") |innerHTML|)
                                (ps:lisp input-text))
                          (setf (ps:chain document (get-element-by-id "completions") |innerHTML|)
@@ -854,7 +872,7 @@ Return most recent entry in RING."
   (when (history minibuffer)
     (with-result (input (read-from-minibuffer
                          (make-minibuffer
-                          :input-prompt "Input history:"
+                          :input-prompt "Input history"
                           :history nil
                           :completion-function (minibuffer-history-completion-filter (history minibuffer)))))
       (unless (str:empty? input)

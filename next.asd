@@ -2,7 +2,7 @@
 ;;; next.asd
 
 (asdf:defsystem :next
-  :version "1.3.4"
+  :version "1.4.0"
   :author "Atlas Engineer LLC"
   :license "BSD 3-Clause"
   :serial t
@@ -12,7 +12,6 @@
                :cl-annot
                :cl-ansi-text
                :cl-css
-               :cl-hooks
                :cl-json
                :cl-markup
                :cl-ppcre
@@ -28,8 +27,10 @@
                :mk-string-metrics
                :parenscript
                :quri
+               :serapeum
                :sqlite
                :str
+               :plump
                :swank
                :trivia
                :trivial-clipboard
@@ -39,7 +40,8 @@
                :next/download-manager
                :next/ring
                :next/history-tree
-               :next/password-manager)
+               :next/password-manager
+               :next/hooks)
   :components ((:module "source"
                 :components
                 ((:file "patch-annot")
@@ -74,7 +76,7 @@
                  (:file "history")
                  (:file "search-buffer")
                  (:file "jump-heading")
-                 (:file "link-hint")
+                 (:file "element-hint")
                  (:file "help")
                  ;; Core Modes
                  (:file "application-mode")
@@ -93,7 +95,7 @@
                  ;; Depends on everything else:
                  (:file "about")
                  (:file "session")
-                 (:file "base"))))
+                 (:file "start"))))
   :build-operation "program-op"
   :build-pathname "next"
   :entry-point "next:entry-point")
@@ -163,3 +165,18 @@
                              (:file "password")
                              (:file "password-pass")
                              (:file "password-keepassxc")))))
+
+(asdf:defsystem next/hooks
+  :depends-on (alexandria serapeum)
+  :components ((:module source :pathname "libraries/hooks/"
+                :components ((:file "package")
+                             (:file "hooks")))))
+
+(asdf:defsystem next/hooks/tests
+  :defsystem-depends-on (prove-asdf)
+  :depends-on (prove
+               next/hooks)
+  :components ((:module source/tests :pathname "libraries/hooks/tests/"
+                :components ((:test-file "tests"))))
+  :perform (asdf:test-op (op c) (uiop:symbol-call
+                                 :prove-asdf 'run-test-system c)))
