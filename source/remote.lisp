@@ -28,12 +28,12 @@
                   :initform (make-minibuffer)
                   :documentation "Buffer for displaying information such as
 current URL or event messages.")
-   (status-buffer-height :accessor status-buffer-height :initform 36
+   (status-buffer-height :accessor status-buffer-height :initform 24
                          :type integer
                          :documentation "The height of the status buffer in pixels.")
    (minibuffer-callbacks :accessor minibuffer-callbacks
                          :initform (make-hash-table :test #'equal))
-   (minibuffer-open-height :accessor minibuffer-open-height :initform 200
+   (minibuffer-open-height :accessor minibuffer-open-height :initform 256
                            :type integer
                            :documentation "The height of the minibuffer when open.")
    (window-set-active-buffer-hook :accessor window-set-active-buffer-hook
@@ -83,6 +83,22 @@ This can apply to specific buffer."))
 
 @export
 @export-accessors
+(defclass certificate-whitelist ()
+  ((whitelist :accessor whitelist :initarg :whitelist
+              :initform '()
+              :type list-of-strings
+              :documentation "A list of hostnames for which certificate errors shall be ignored.
+It must be a list of strings."))
+  (:documentation "Enable ignoring of certificate errors.
+This can apply to specific buffers."))
+
+(define-class-type certificate-whitelist)
+(declaim (type (certificate-whitelist-type) *certificate-whitelist-class*))
+@export
+(defparameter *certificate-whitelist-class* 'certificate-whitelist)
+
+@export
+@export-accessors
 (defclass buffer ()
   ((id :accessor id :initarg :id :initform ""
        :documentation "Unique identifier for a buffer.  Dead buffers (i.e. those
@@ -90,6 +106,10 @@ not associated with a web view) have an empty ID.")
    ;; TODO: Or maybe a dead-buffer should just be a buffer history?
    (url :accessor url :initarg :url :type string :initform "")
    (title :accessor title :initarg :title :type string :initform "")
+   (last-access :accessor last-access
+                :initform (local-time:now)
+                :type number
+                :documentation "Timestamp when the buffer was last switched to.")
    (modes :accessor modes :initarg :modes :initform '()
           :documentation "The list of mode instances.")
    (default-modes :accessor default-modes :initarg :default-modes
@@ -98,10 +118,10 @@ not associated with a web view) have an empty ID.")
                   :documentation "The list of symbols of class to
 instantiate on buffer creation, unless specified.")
    (current-keymap-scheme ; TODO: Name keymap-scheme instead?
-                          :accessor current-keymap-scheme
-                          :initarg :current-keymap-scheme
-                          :initform :emacs
-                          :documentation "The keymap scheme that will be used
+    :accessor current-keymap-scheme
+    :initarg :current-keymap-scheme
+    :initform :emacs
+    :documentation "The keymap scheme that will be used
 for all modes in the current buffer.")
    (override-map :accessor override-map
                  :initarg :override-map
@@ -158,32 +178,32 @@ down.")
                  :documentation "The path where cookies are stored.  Not all
 platform ports might support this.")
    (box-style :accessor box-style
-              :initform (cl-css:inline-css
-                         '(:background "linear-gradient(to bottom, #FFF785, #C38A22)"
-                           :color "black"
-                           :border "1px #C38A22 solid"
-                           :font-weight "bold"
-                           :padding "1px 3px 0px 3px"
-                           :text-transform "lowercase"
-                           :padding "1px 3px 0px 3px"
-                           :text-align "center"
-                           :text-shadow "0 3px 7px 0px rgba(0,0,0,0.3)"
-                           :border-radius "3px"
-                           ;; Ensure the hint is above all the page elements.
-                           ;; https://developer.mozilla.org/en-US/docs/Web/CSS/z-index
-                           ;; TODO: The highest integer value is non-standard,
-                           ;; so the following might depend on the web renderer.
-                           ;; https://developer.mozilla.org/en-US/docs/Web/CSS/integer#Syntax
-                           :z-index #.(1- (expt 2 31))))
+              :initform (cl-css:css
+                         '((".next-hint"
+                            :background "linear-gradient(#fcff9e, #efcc00)"
+                            :color "black"
+                            :border "1px black solid"
+                            :padding "1px 3px 1px 3px"
+                            :border-radius "2px"
+                            :z-index #.(1- (expt 2 31)))))
               :documentation "The style of the boxes, e.g. link hints.")
+   (highlighted-box-style :accessor highlighted-box-style
+                          :initform (cl-css:css
+                                     '((".next-hint.next-highlight-hint"
+                                        :font-weight "500"
+                                        :background "#fcff9e")))
+
+                          :documentation "The style of highlighted boxes, e.g. link hints.")
    (proxy :initform nil :type :proxy
           :documentation "Proxy for buffer.")
+   (certificate-whitelist :initform nil :type :certificate-whitelist
+                          :documentation "Certificate host whitelisting for buffer.")
    ;; TODO: Rename `load-hook' to `set-url-hook'?
    (load-hook :accessor load-hook
               :initform (next-hooks:make-hook-string->string
                          :combination #'next-hooks:combine-composed-hook)
               :type next-hooks:hook-string->string
-              :documentation "Hook run in `set-url' after `parse-url' was
+              :documentation "Hook run in `set-url' after `parse-url' was)))))
 processed.  The handlers take the URL going to be loaded as argument and must
 return a (possibly new) URL.")
    (buffer-delete-hook :accessor buffer-delete-hook
@@ -209,6 +229,17 @@ The handlers take the buffer as argument.")))
       (rpc-set-proxy buffer
                      ""
                      nil)))
+
+(defmethod certificate-whitelist ((buffer buffer))
+  (slot-value buffer 'certificate-whitelist))
+
+(defmethod (setf certificate-whitelist) (certificate-whitelist (buffer buffer))
+  (setf (slot-value buffer 'certificate-whitelist) certificate-whitelist)
+  (if certificate-whitelist
+      (rpc-set-certificate-whitelist buffer
+                                     (whitelist certificate-whitelist))
+      (rpc-set-certificate-whitelist buffer
+                                     nil)))
 
 ;; TODO: Find a better way to uniquely identify commands from mode methods.
 ;; What about symbol properties?  We could use:
@@ -763,6 +794,7 @@ proceeding."
   (%rpc-send "window_set_active_buffer" (id window) (id buffer))
   (setf (active-buffer window) buffer)
   (when (and window buffer)
+    (setf (last-access buffer) (local-time:now))
     (setf (last-active-buffer *interface*) buffer))
   buffer)
 
@@ -797,6 +829,7 @@ proceeding."
           (rpc-buffer-delete temp-buffer))
         (rpc-window-set-active-buffer window buffer))
     (set-window-title window buffer)
+    (echo-dismiss)
     (setf (active-buffer window) buffer)))
 
 (declaim (ftype (function (window integer)) rpc-window-set-minibuffer-height))
@@ -840,10 +873,11 @@ If DEAD-BUFFER is a dead buffer, recreate its web view and give it a new ID."
   (let ((active-buffers
           (mapcar #'active-buffer
                   (alexandria:hash-table-values (windows *interface*))))
-        (buffers (alexandria:hash-table-values (buffers *interface*))))
+        (buffers (buffer-list)))
     (match (set-difference buffers active-buffers)
       ((guard diff diff)
-       (alexandria:last-elt diff)))))
+       ;; Display the most recent inactive buffer.
+       (first (sort diff #'local-time:timestamp> :key #'last-access))))))
 
 (declaim (ftype (function (buffer)) rpc-buffer-delete))
 @export
@@ -934,6 +968,17 @@ user."
 MODE is one of \"default\" (use system configuration), \"custom\" or \"none\".
 ADDRESS is in the form PROTOCOL://HOST:PORT."
   (%rpc-send "get_proxy" (id buffer)))
+
+(declaim (ftype (function (buffer &optional list)) rpc-set-certificate-whitelist))
+@export
+(defun rpc-set-certificate-whitelist (buffer &optional (whitelist-hosts (list nil)))
+  (%rpc-send "set_certificate_whitelist" (list (id buffer))
+             whitelist-hosts))
+
+(declaim (ftype (function (buffer)) rpc-get-certificate-whitelist))
+@export
+(defun rpc-get-certificate-whitelist (buffer)
+  (%rpc-send "get_certificate_whitelist" (id buffer)))
 
 (declaim (ftype (function (buffer string boolean)) rpc-buffer-set))
 @export

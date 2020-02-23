@@ -21,6 +21,7 @@ end-user allowing for infinite customization.
   - [[#clearing-the-echo-area][Clearing the Echo Area]]
   - [[#exiting][Exiting]]
   - [[#proxy-and-tor-support][Proxy and Tor support]]
+  - [[#certificate-host-whitelisting][Certificate host whitelisting]]
   - [[#cloning-git-repositories][Cloning Git repositories]]
   - [[#downloading-videos][Downloading videos]]
   - [[#password-manager][Password manager]]
@@ -41,6 +42,7 @@ end-user allowing for infinite customization.
   - [[#hooks][Hooks]]
   - [[#startup-behaviour][Startup behaviour]]
   - [[#run-next-in-a-security-sandbox][Run Next in a security sandbox]]
+  - [[#font-size-on-hidpi-displays][Font size on HiDPI displays]]
 - [[#troubleshooting][Troubleshooting]]
   - [[#stumpwm-mouse-scroll][StumpWM mouse scroll]]
   - [[#d-bus-requirement][D-Bus requirement]]
@@ -414,6 +416,29 @@ global for the Qt one.
 To enable proxy for all buffers by default, add the proxy mode to the default
 modes.  See [[Modes]] for details.
 
+** Certificate host whitelisting
+
+By default the WebKit engine refuses to establish a secure connection to a host with an erroneous
+certificate (e.g. self-signed ones). The buffer mode =certificate-whitelist=
+allows to mitigate this problem by providing a mechanism to specify a list of hosts
+for which certificate errors shall be ignored. A hostname does not contain a protocol
+like HTTP or HTTPS and is basically the domain name of the server serving the web content
+to which a URL refers, e.g. the hostname in the URL https://next.atlas.engineer/
+is =next.atlas.engineer=.
+
+To enable this mode put the following statements into your =init.lisp= configuration
+
+#+begin_src lisp
+(in-package :next-user)
+
+(setf next/certificate-whitelist-mode:*default-certificate-whitelist*
+      (make-instance 'certificate-whitelist :whitelist '("next.atlas.engineer")))
+
+(defclass my-buffer (buffer)
+  ((default-modes :initform '(web-mode root-mode proxy-mode certificate-whitelist-mode))))
+(setf buffer-class 'my-buffer)
+#+end_src
+
 ** Cloning Git repositories
 
 Use  the  =vcs-clone=  (alias  =git-clone=) command  to  clone  a  Git
@@ -501,7 +526,7 @@ expression:
 : next --eval '(format t "hello Next!")'
 
 The plateform port is not started. If you want to execute commands
-against a running Next process, see the =sart-swank= command and the
+against a running Next process, see the =start-swank= command and the
 developer setup.
 
 ** SLIME with a compiled version of Next
@@ -612,6 +637,8 @@ The user can define key bindings by creating a mode that is loaded before any
 other mode.  In your configuration file:
 
 #+begin_src lisp
+(in-package :next-user)
+
 (defvar *my-keymap* (make-keymap)
   "Keymap for `my-mode'.")
 
@@ -622,7 +649,7 @@ other mode.  In your configuration file:
 
 (defclass my-buffer (buffer)
   ((default-modes :initform
-     (cons 'vi-normal-mode (get-default 'buffer 'default-modes)))))
+     (cons 'my-mode (get-default 'buffer 'default-modes)))))
 
 (setf *buffer-class* 'my-buffer)
 #+end_src
@@ -674,8 +701,13 @@ The minimal config that sets your Next in vi mode, is:
 
 #+BEGIN_SRC lisp
 ; $HOME/.config/next/init.lisp
-(in-package :next)
-(add-to-default-list 'vi-normal-mode 'buffer 'default-modes)
+(in-package :next-user)
+
+(defclass my-buffer (buffer)
+  ((default-modes :initform
+     (cons 'vi-normal-mode (get-default 'buffer 'default-modes)))))
+
+(setf *buffer-class* 'my-buffer)
 #+END_SRC
 
 ** Start-up options
@@ -1005,6 +1037,17 @@ with [[https://firejail.wordpress.com/][Firejail]] on GNU/Linux.
 Run it like this:
 
 : firejail --ignore=nodbus next-gtk-webkit
+** Font size on HiDPI displays
+
+On HiDPI displays the font size used for displaying web and next's minibuffer content might be too tiny.
+
+To fix this issue for the GTK port use this
+
+#+begin_src sh
+export GDK_SCALE=2
+export GDK_DPI_SCALE=0.5
+next &
+#+end_src
 
 * Troubleshooting
 ** StumpWM mouse scroll

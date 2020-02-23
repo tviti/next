@@ -5,6 +5,7 @@ Use of this file is governed by the license that can be found in LICENSE.
 #pragma once
 
 #include <webkit2/webkit2.h>
+#include <libsoup/soup.h>
 #include <JavaScriptCore/JavaScript.h>
 
 #include "javascript.h"
@@ -39,6 +40,7 @@ typedef struct {
 	WebKitNetworkProxyMode _proxy_mode;
 	const char *_proxy_uri;
 	const char *const *_ignore_hosts;
+	const char *const *_certificate_whitelist_hosts;
 } Buffer;
 
 typedef struct {
@@ -415,6 +417,30 @@ void buffer_mouse_target_changed(WebKitWebView *web_view,
 	// 'uri' is freed automatically.
 }
 
+static gboolean buffer_load_failed_with_tls_errors(WebKitWebView *web_view,
+	gchar *failing_uri, GTlsCertificate *certificate, GTlsCertificateFlags errors,
+	gpointer user_data) {
+	Buffer *buffer = (Buffer *)user_data;
+	SoupURI *soup_uri = soup_uri_new(failing_uri);
+	const gchar *const *whitelist_hosts = buffer->_certificate_whitelist_hosts;
+	gboolean match = FALSE;
+
+	while (whitelist_hosts != NULL && whitelist_hosts[0] != NULL) {
+		if (g_strcmp0(soup_uri->host, whitelist_hosts[0]) == 0) {
+			webkit_web_context_allow_tls_certificate_for_host(
+				webkit_web_view_get_context(buffer->web_view), certificate, soup_uri->host);
+			webkit_web_view_load_uri(buffer->web_view, failing_uri);
+			match = TRUE;
+			break;
+		}
+		whitelist_hosts++;
+	}
+
+	soup_uri_free(soup_uri);
+
+	return match;
+}
+
 Buffer *buffer_init(const char *cookie_file) {
 	Buffer *buffer = calloc(1, sizeof (Buffer));
 	if (buffer == NULL) {
@@ -454,6 +480,10 @@ Buffer *buffer_init(const char *cookie_file) {
 	g_signal_connect(buffer->web_view, "button-press-event", G_CALLBACK(window_button_event), buffer);
 	g_signal_connect(buffer->web_view, "button-release-event", G_CALLBACK(window_button_event), buffer);
 	g_signal_connect(buffer->web_view, "scroll-event", G_CALLBACK(window_scroll_event), buffer);
+
+        // TLS certificate handling
+	g_signal_connect(buffer->web_view, "load-failed-with-tls-errors",
+		G_CALLBACK(buffer_load_failed_with_tls_errors), buffer);
 
 	// We need to hold a reference to the view, otherwise changing buffer in the a
 	// window will unref+destroy the view.
@@ -530,6 +560,17 @@ void buffer_get_proxy(Buffer *buffer, WebKitNetworkProxyMode *mode,
 		*proxy_uri = buffer->_proxy_uri;
 		*ignore_hosts = buffer->_ignore_hosts;
 	}
+}
+
+void buffer_set_certificate_whitelist(Buffer *buffer,
+	const gchar *const *whitelist_hosts) {
+	buffer->_certificate_whitelist_hosts = whitelist_hosts;
+	webkit_web_view_reload(buffer->web_view);
+	g_debug("Certificate whitelist set");
+}
+
+void buffer_get_certificate_whitelist(Buffer *buffer, const gchar *const **whitelist_hosts) {
+	*whitelist_hosts = buffer->_certificate_whitelist_hosts;
 }
 
 void buffer_set(Buffer *buffer, const gchar *setting, gboolean value) {

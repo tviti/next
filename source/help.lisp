@@ -70,7 +70,11 @@
                                 ;; TODO: This only display the first method, i.e. the first command of one of the modes.
                                 ;; Ask for modes instead?
                                 (documentation (command-function input)
-                                               t)))))
+                                               t)))
+                           (:p "Source file: "
+                               (getf (getf (swank:find-definition-for-thing (command-function input))
+                                           :location)
+                                     :file))))
            (insert-help (ps:ps (setf (ps:@ document Body |innerHTML|)
                                      (ps:lisp help-contents)))))
       (rpc-buffer-evaluate-javascript help-buffer insert-help)
@@ -182,11 +186,21 @@ The version number is stored in the clipboard."
   (trivial-clipboard:text +version+)
   (echo "Version ~a" +version+))
 
+(defclass messages-appender (log4cl-impl:appender)
+  ())
+
+(defmethod log4cl-impl:appender-do-append ((appender messages-appender) logger level log-func)
+  (push
+   `(:p ,(with-output-to-string (s)
+           (log4cl-impl:layout-to-stream
+            (slot-value appender 'log4cl-impl:layout) s logger level log-func)))
+   (messages-content *interface*)))
+
 (define-command messages ()
   "Show the *Messages* buffer."
   (let ((buffer (find-if (lambda (b)
                            (string= "*Messages*" (title b)))
-                         (alexandria:hash-table-values (buffers *interface*)))))
+                         (buffer-list))))
     (unless buffer
       (setf buffer (help-mode :activate t :buffer (make-buffer :title "*Messages*"))))
     (let* ((content
