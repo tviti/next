@@ -110,7 +110,9 @@ endif
 .PHONY: quicklisp-extra-libs
 quicklisp-extra-libs: $(QUICKLISP_DIR)/setup.lisp
 	$(NYXT_INTERNAL_QUICKLISP) && git submodule update --init --remote || true
-	for i in $(QUICKLISP_LIBRARIES)/local-projects/*; do ln -sf "$$i" "$(QUICKLISP_DIR)/local-projects/$$(basename "$$i")"; done
+	for i in $(QUICKLISP_LIBRARIES)/* ; do \
+		ln -sf "$$(realpath --relative-to=$(QUICKLISP_DIR)/local-projects $$i)" "$(QUICKLISP_DIR)/local-projects/$$(basename "$$i")"; \
+	done
 
 .PHONY: deps
 deps: $(QUICKLISP_DIR)/setup.lisp quicklisp-extra-libs
